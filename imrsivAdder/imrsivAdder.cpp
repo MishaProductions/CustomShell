@@ -137,7 +137,7 @@ typedef BOOL(WINAPI* NtUserEnableIAMAccess)( //2510
 typedef BOOL(WINAPI* NtUserAcquireIAMKey)( //2509
 	OUT ULONG64* pkey);
 typedef HRESULT(CALLBACK* SetShellWindow)(HWND hwnd);
-LONG thing = 0;
+LONG PcRef = 0;
 IUnknown* thing2 = NULL;
 LRESULT StaticWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 {
@@ -169,7 +169,7 @@ LRESULT StaticWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		SetPropW(hwnd, L"NonRudeHWND", (HANDLE)HANDLE_FLAG_INHERIT);
 
 
-		if (SUCCEEDED(SHCreateThreadRef(&thing, &thing2)))
+		if (SUCCEEDED(SHCreateThreadRef(&PcRef, &thing2)))
 		{
 			SHSetThreadRef(thing2);
 		}

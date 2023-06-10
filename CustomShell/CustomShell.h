@@ -3,11 +3,14 @@
 #include <Shobjidl.h>
 #include <wrl.h>
 #include <Shlwapi.h>
-class ShellObject
+class CustomShell
 {
 public:
-	 ShellObject();
-	 HRESULT RunShellToCompletion();
-	 HRESULT DoLegacyInitialization();
+	 CustomShell();
+	 HRESULT Run();
+	 HRESULT InitStuff();
+
+private:
+
 };
 

@@ -140,12 +140,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="CustomShell.cpp" />
-    <ClCompile Include="ShellObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
-    <ClInclude Include="ShellObject.h" />
+    <ClInclude Include="CustomShell.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

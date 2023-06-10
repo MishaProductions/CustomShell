@@ -240,11 +240,9 @@ int IAMThreadAccessGrantedHook(struct tagIAM_THREAD* thread)
 
 
 
-__int64 __fastcall NtUserEnableIAMAccessHook(ULONG64* key, int enable)
+__int64 __fastcall NtUserEnableIAMAccessHook(LONG64* key, int enable)
 {
-	DbgPrint("[*] NtUserEnableIAMAccessHook called with %d\n", enable);
 	g_enable = enable;
-	DbgPrint("[*] NtUserEnableIAMAccessHook end\n");
 	return TRUE;
 }
 
@@ -260,13 +258,7 @@ ULONG_PTR GetPointerToIAMThreadAccessGranted()
 	PVOID CreateWindowGroup = get_system_module_export(L"win32kfull.sys", "NtUserSetActiveProcessForMonitor");
 	char* CreateWindowGroupPointer = (PVOID)CreateWindowGroup;
 
-	DbgPrint("[*] NtUserSetActiveProcessForMonitor offset from win32kfull.sys: %llu\n", (char*)CreateWindowGroup - (char*)Win32kFull);
-
-	//We now need to find the 1st call instruction address
-	//Example:
-	// call    cs:__imp_UserSessionSwitchEnterCrit (this is some other type of call)
-	//..
-	// call    IAMThreadAccessGranted
+	DbgPrint("[*] NtUserSetActiveProcessForMonitor offset from win32kfull.sys: %llu\n", (char*)CreateWindowGroup - (char*)Win32kFull);	
 
 	DbgPrint("[*] NtUserSetActiveProcessForMonitor[40]: ");
 	for (INT i = 0; i < 40; i++)
@@ -308,7 +300,7 @@ ULONG_PTR GetPointerToIAMThreadAccessGranted()
 	if (found == 1)
 	{
 		DbgPrint("read offset: %d\n", ReadOffset);
-		
+
 		DbgPrint("[*] found it i think: signed: %lld relative: %x value signed: %I64x, operand count: %d, opcode len: %d\n", InstructionOperands[0].imm.value.s, InstructionOperands[0].imm.is_relative, InstructionOperands[0].imm.value.s, Instruction.operand_count, Instruction.length);
 		//DbgPrint("[*] %d %I64x\n", InstructionOperands[1].type, InstructionOperands[1].imm.value.s);
 		//DbgPrint("[*] %d %I64x\n", InstructionOperands[2].type, InstructionOperands[2].imm.value.s);
@@ -434,10 +426,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject,
 #pragma endregion
 #pragma region Hook IAMThreadAccessGranted
 
-	IAMThreadAccessGrantedFuncAddr = GetPointerToIAMThreadAccessGranted();// (ULONG_PTR)(((char*)Win32kFull + 0x8f634));
-
-	//((IsImmersiveBrokerFunc*)IAMThreadAccessGrantedFuncAddr)(NULL);
-	//IAMThreadAccessGrantedFuncAddr = (ULONG_PTR)get_system_module_export(L"win32kfull.sys", "IAMKeyAcquired");
+	IAMThreadAccessGrantedFuncAddr = GetPointerToIAMThreadAccessGranted();
 
 	if (IAMThreadAccessGrantedFuncAddr == NULL)
 	{
@@ -545,18 +534,27 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject,
 			NtUserEnableIAMAccessFuncOrignalBytes[i] & 0xff);
 
 #if defined(_M_X64)
+	//r15d register contains address to the pointer of g_enabled
 	CHAR Patch3[] = {
-		0x49, 0xb8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, //mov r8, address
-		0x41, 0xFF, 0xD0,                                   //call r8
-		0xC3                                                //ret
+		0x41, 0xBF, 0x00, 0x00, 0x00, 0x00, //mov r15d, <ADDRESS>
+		0x89, 0x54, 0x24, 0x10,             //mov dword ptr [rsp + 0x10], edx
+		0x48, 0x89, 0x4C, 0x24, 0x08,       //mov qword ptr [rsp + 8], rcx
+		0x8B, 0x44, 0x24, 0x10,             //mov eax, dword ptr[rsp + 0x10]
+		0x67, 0x41, 0x89, 0x07,             //mov dword ptr [r15d], eax
+		0xB8, 0x01, 0x00, 0x00, 0x00,       //mov eax, 1
+		0xC3                                //ret
 	};
 
 	ULONG_PTR NtUserEnableIAMAccessAddress = (ULONG_PTR)NtUserEnableIAMAccessHook;
 	CHAR* NtUserEnableIAMAccessAddressBytes = (CHAR*)&NtUserEnableIAMAccessAddress;
+	int* var = &g_enable;
+	DbgPrint("int size: %d\n", sizeof(int));
+	DbgPrint("int pointer: %d\n", (int)(int*)&g_enable);
+	int source = (int)&g_enable;
+	RtlCopyMemory(&Patch3[2], &source, sizeof(int));
+	DbgPrint("wrote the address");
 
-	RtlCopyMemory(&Patch3[2], NtUserEnableIAMAccessAddressBytes, sizeof(ULONG_PTR));
-
-	Status = Overwrite(NtUserEnableIAMAccessFuncAddr, (PVOID)NtUserEnableIAMAccessAddress, sizeof(NtUserEnableIAMAccessAddress));
+	Status = Overwrite(NtUserEnableIAMAccessFuncAddr, (PVOID)Patch3, sizeof(Patch3));
 
 	if (Status != STATUS_SUCCESS) {
 		DbgPrint("[!] Failed to overwrite NtUserEnableIAMAccess\n");

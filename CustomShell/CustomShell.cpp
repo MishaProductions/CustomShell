@@ -1,177 +1,310 @@
-#define WIN32_LEAN_AND_MEAN
-#define _CRT_SECURE_NO_WARNINGS 1
-#include <windows.h>
-#include <mutex>
+#include "CustomShell.h"
+#include <stdio.h>
 
-//INSTALL DETOURS FROM NUGET! (or build from source yourself)
-#include <detours.h>
-#include "ShellObject.h"
-#include <iostream>
+typedef HRESULT(CALLBACK* SetExplorerServerMode)(DWORD flags);
+typedef HRESULT(CALLBACK* ShellDDEInit)(BOOL register);
+typedef HRESULT(CALLBACK* SCNSystemInitialize)();
+typedef HRESULT(CALLBACK* SetShellWindow)(HWND hwnd);
+typedef BOOL(WINAPI* NtUserAcquireIAMKey)(
+	OUT ULONG64* pkey);
+typedef BOOL(WINAPI* NtUserEnableIAMAccess)(
+	IN ULONG64 key,
+	IN BOOL enable);
+typedef HWND(WINAPI* GetTaskmanWindow)();
+typedef BOOL(WINAPI* SetTaskmanWindow)(HWND handle);
 
-
-//Definitions
-typedef BOOL(WINAPI* SetWindowBand)(IN HWND hWnd, IN HWND hwndInsertAfter, IN DWORD dwBand);
-typedef BOOL(WINAPI* NtUserEnableIAMAccess)(IN ULONG64 key, IN BOOL enable);
-
-//Fields
-NtUserEnableIAMAccess lNtUserEnableIAMAccess;
-SetWindowBand lSetWindowBand;
-
-ULONG64 g_iam_key = 0x0;
-bool g_is_detached = false; //To prevent detaching twice.
-std::mutex g_mutex;
-
-//Forward functions
-BOOL WINAPI NtUserEnableIAMAccessHook(ULONG64 key, BOOL enable);
-BOOL SetWindowBandInternal(HWND hWnd, HWND hwndInsertAfter, DWORD dwBand);
-
-//Function for detouring NtUserEnableIAMAccess
-VOID AttachHook()
+interface IImmersiveShellController : IUnknown
 {
-	DetourTransactionBegin();
-	DetourUpdateThread(GetCurrentThread());
-	DetourAttach(&(PVOID&)lNtUserEnableIAMAccess, (PVOID)NtUserEnableIAMAccessHook);
-	DetourTransactionCommit();
+	virtual int Start();
+	virtual int Stop(void* unknown);
+	virtual int SetCreationBehavior(void* structure);
+
+};
+interface IImmersiveShellBuilder : IUnknown
+{
+	virtual int CreateImmersiveShellController(IImmersiveShellController** other);
+};
+
+GetTaskmanWindow GetTaskmanWindowFunc = NULL;
+SetTaskmanWindow SetTaskmanWindowFunc = NULL;
+SetExplorerServerMode SetExplorerServerModeFunc = NULL;
+SCNSystemInitialize SCNSystemInitializeFunc = NULL;
+ShellDDEInit ShellDDEInitFunc = NULL;
+
+long PcRef = 0;
+IUnknown* ThreadObject = NULL;
+
+
+CustomShell::CustomShell()
+{
+
 }
+#pragma data_seg(.imrsiv)
 
-//Function for restoring NtUserEnableIAMAccess
-VOID DetachHook()
+LRESULT StaticWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 {
-	g_mutex.lock();
-	if (!g_is_detached)
+	if (msg == WM_CREATE)
 	{
-		DetourTransactionBegin();
-		DetourUpdateThread(GetCurrentThread());
-		DetourDetach(&(PVOID&)lNtUserEnableIAMAccess, NtUserEnableIAMAccessHook);
-		DetourTransactionCommit();
-		g_is_detached = true;
+		auto user32 = LoadLibrary(TEXT("user32.dll"));
+		if (user32 == NULL)
+		{
+			printf("Failed to load user32.dll\n");
+		}
+		auto SetShellWindowFunction = (SetShellWindow)GetProcAddress(user32, "SetShellWindow");
+
+		if (SetShellWindowFunction == NULL)
+		{
+			printf("failed to get setshellwindow pointer\n");
+			return 0;
+		}
+
+		if (FAILED(SetShellWindowFunction(hwnd)))
+		{
+			printf("SetShellWindow failed\n");
+			return 0;
+		}
+
+		SetProp(hwnd, TEXT("NonRudeHWND"), (HANDLE)HANDLE_FLAG_INHERIT);
+		SetProp(hwnd, TEXT("AllowConsentToStealFocus"), (HANDLE)HANDLE_FLAG_INHERIT);
+
+
+		if (SUCCEEDED(SHCreateThreadRef(&PcRef, &ThreadObject)))
+		{
+			SHSetThreadRef(ThreadObject);
+		}
+		else
+		{
+			printf("Failed to create thread reference");
+		}
 	}
-	g_mutex.unlock();
-}
-
-//Our detoured function
-BOOL WINAPI NtUserEnableIAMAccessHook(ULONG64 key, BOOL enable)
-{
-	const auto res = lNtUserEnableIAMAccess(key, enable);
-
-	if (res == TRUE && !g_iam_key)
+	else if (msg == WM_SIZE)
 	{
-		g_iam_key = key;
-		DetachHook();
-
-		//Example, for testing only. Don't call it here, make an IPC for that.
-		SetWindowBandInternal((HWND)0x503B4, NULL, 16);
+		ShowWindow(hwnd, 5);
 	}
-
-	return res;
-}
-
-//This functions is needed to induce explorer.exe (actually twinui.pcshell.dll) to call NtUserEnableIAMAccess
-VOID TryForceIAMAccessCallThread(LPVOID lpParam)
-{
-	//These 7 calls will force a call into EnableIAMAccess.
-	auto hwndFore = GetForegroundWindow();
-	auto hwndToFocus = FindWindow(L"Shell_TrayWnd", NULL);
-	SetForegroundWindow(GetDesktopWindow()); //This in case Shell_TrayWnd is already focused
-	Sleep(100);
-	SetForegroundWindow(hwndToFocus); //Focus on the taskbar, should trigger EnableIAMAccess
-	Sleep(100);
-	SetForegroundWindow(hwndFore); //Restore focus.
-}
-
-//Function helper to call SetWindowBand in the proper way.
-BOOL SetWindowBandInternal(HWND hWnd, HWND hwndInsertAfter, DWORD dwBand)
-{
-	if (g_iam_key)
+	else if (msg == WM_CLOSE)
 	{
-		lNtUserEnableIAMAccess(g_iam_key, TRUE);
-		const auto callResult = lSetWindowBand(hWnd, hwndInsertAfter, dwBand);
-		lNtUserEnableIAMAccess(g_iam_key, FALSE);
-
-		return callResult;
+		return -1;
 	}
-
-	return FALSE;
-}
-typedef BOOL(WINAPI* SetErrorModeTHing)(IN UINT mode);
-static SetErrorModeTHing org = NULL;
-static BOOL run = true;
-BOOL SetErrorModeTHingFunc(UINT mode)
-{
-	DetourTransactionBegin();
-	DetourUpdateThread(GetCurrentThread());
-	DetourDetach(&(PVOID&)org, (PVOID)SetErrorModeTHingFunc);
-	DetourTransactionCommit();
-
-	run = FALSE;
-	printf("hook called!\n");
-
-
-	return TRUE;
-}
-void DoStuff(LPVOID threadparam)
-{
-	printf("Waiting for COM to be inited\n");
-	//Sleep(1000);
-	if (FAILED(CoInitializeEx(NULL, 2)))
+	else if (msg == WM_PAINT)
 	{
-		printf("Failed to initialize COM\n");
-		return;
+		PAINTSTRUCT Paint;
+		RECT Rect;
+		HDC dc = BeginPaint(hwnd, &Paint);
+		GetClientRect(hwnd, &Rect);
+		FillRect(dc, &Rect, GetSysColorBrush(1));
+		EndPaint(hwnd, &Paint);
+		return 0;
 	}
-	printf("Starting it\n");
-	//create the shell object
-	ShellObject* object = new ShellObject();
-	if (FAILED(object->RunShellToCompletion()))
+	return DefWindowProc(hwnd, msg, w, l);
+}
+
+LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
+{
+	if (msg == WM_CREATE)
 	{
-		printf("RunShellToCompletion failed\n");
+		if (!SetTaskmanWindowFunc(hwnd))
+		{
+			printf("failed to register taskman window\n");
+		}
+		RegisterShellHookWindow(hwnd);
+	}
+	else if (msg == WM_DESTROY)
+	{
+		if (GetTaskmanWindowFunc() == hwnd)
+		{
+			SetTaskmanWindowFunc(NULL);
+		}
+		DeregisterShellHookWindow(hwnd);
 	}
 
+	return DefWindowProc(hwnd, msg, w, l);
 }
-int main()
+HRESULT CustomShell::Run()
 {
-    if (FAILED(CoInitializeEx(NULL, 2)))
-    {
-        printf("Failed to initialize COM\n");
-        return 1;
-    }
-    DoStuff(NULL);
-	system("pause");
-}
-//DllMain
-//BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
-//{
-//	switch (ul_reason_for_call)
-//	{
-//	case DLL_PROCESS_ATTACH:
-//	{
-//		DisableThreadLibraryCalls(hModule);
-//		AllocConsole();
-//		freopen("CONOUT$", "w", stdout);
-//		std::cout << "This works" << std::endl;
-//		//LaunchCustomShellHost
-//
-//   /*    if (FAILED(CoInitializeEx(NULL, 2)))
-//		{
-//			printf("Failed to initialize COM\n");
-//			return 1;
-//		}*/
-//
-//		//Wait for COM to be initialized
-//
-//		CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&DoStuff, NULL, NULL, NULL);
-//
-//	}
-//	break;
-//	case DLL_PROCESS_DETACH:
-//	{
-//		DetachHook();
-//	}
-//	break;
-//	}
-//	return TRUE;
-//}
+	//Setup our functions
+	auto user32 = LoadLibrary(TEXT("user32.dll"));
+	auto shell32 = LoadLibrary(TEXT("shell32.dll"));
+	auto shdocvw = LoadLibrary(TEXT("shdocvw.dll"));
+	if (user32 == NULL)
+	{
+		printf("Failed to load user32.dll\n");
+	}
+	if (shell32 == NULL)
+	{
+		printf("Failed to load shell32.dll\n");
+	}
+	if (shdocvw == NULL)
+	{
+		printf("Failed to load shdocvw.dll\n");
+	}
+#pragma region  get function pointers
+	GetTaskmanWindowFunc = (GetTaskmanWindow)GetProcAddress(user32, "GetTaskmanWindow");
+	if (GetTaskmanWindowFunc == NULL)
+	{
+		printf("failed to get pointer to GetTaskmanWindow()\n");
+		return GetLastError();
+	}
+	SetTaskmanWindowFunc = (SetTaskmanWindow)GetProcAddress(user32, "SetTaskmanWindow");
+	if (SetTaskmanWindowFunc == NULL)
+	{
+		printf("failed to get pointer to SetTaskmanWindow()\n");
+		return GetLastError();
+	}
 
-void HamCloseActivity()
+	SetExplorerServerModeFunc = (SetExplorerServerMode)GetProcAddress(shell32, (LPCSTR)899);
+	if (SetExplorerServerModeFunc == NULL)
+	{
+		printf("failed to get pointer to SetExplorerServerMode()\n");
+		return GetLastError();
+	}
+	SCNSystemInitializeFunc = (SCNSystemInitialize)GetProcAddress(shell32, (LPCSTR)938);
+	if (SCNSystemInitializeFunc == NULL)
+	{
+		printf("failed to get pointer to SCNSystemInit()\n");
+		return GetLastError();
+	}
+
+	ShellDDEInitFunc = (ShellDDEInit)GetProcAddress(shell32, (LPCSTR)188);
+	if (ShellDDEInitFunc == NULL)
+	{
+		printf("failed to get pointer to ShellDDEInit()\n");
+		return GetLastError();
+	}
+
+#pragma endregion
+
+
+	printf("Initialize explorer\n");
+	int hr = InitStuff();
+	if (FAILED(hr)) return hr;
+
+
+	//Create program manager
+
+	WNDCLASSEX progmanclass;
+
+	progmanclass.cbClsExtra = 0;
+	progmanclass.hIcon = 0;
+	progmanclass.lpszMenuName = 0;
+	progmanclass.hIconSm = 0;
+	progmanclass.cbSize = 80;
+	progmanclass.style = 8;
+	progmanclass.lpfnWndProc = (WNDPROC)StaticWndProc;
+	progmanclass.cbWndExtra = 8;
+	progmanclass.hInstance = GetModuleHandle(NULL);
+	progmanclass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	progmanclass.hbrBackground = (HBRUSH)2;
+	progmanclass.lpszClassName = TEXT("Progman");
+
+	if (!RegisterClassExW(&progmanclass))
+	{
+		printf("failed to register progman class %d", GetLastError());
+		return -1;
+	}
+	printf("create progman\n");
+	auto Progman = CreateWindowW(L"Progman", TEXT("Program Manager"), 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+
+	printf("create taskman\n");
+	//create taskman class (handles taskbar buttons)
+	WNDCLASSEX taskmanclass;
+
+	taskmanclass.cbClsExtra = 0;
+	taskmanclass.hIcon = 0;
+	taskmanclass.lpszMenuName = 0;
+	taskmanclass.hIconSm = 0;
+	taskmanclass.cbSize = sizeof(WNDCLASSEXW);
+	taskmanclass.style = 8;
+	taskmanclass.lpfnWndProc = (WNDPROC)TaskmanWndProc;
+	taskmanclass.cbWndExtra = 8;
+	taskmanclass.hInstance = GetModuleHandle(NULL);
+	taskmanclass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	taskmanclass.hbrBackground = (HBRUSH)2;
+	taskmanclass.lpszClassName = TEXT("TaskmanWndClass");
+
+	if (!RegisterClassExW(&taskmanclass))
+	{
+		printf("failed to register taskman class %d", GetLastError());
+		return -1;
+	}
+	auto Taskman = CreateWindowW(L"TaskmanWndClass", NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+	IImmersiveShellBuilder* ImmersiveShellBUilder = NULL;
+	GUID guidImmersiveShell;
+	CLSIDFromString(L"{c2f03a33-21f5-47fa-b4bb-156362a2f239}", &guidImmersiveShell); //imersive shell
+
+	GUID guid;
+	if (FAILED(CLSIDFromString(L"{c71c41f1-ddad-42dc-a8fc-f5bfc61df957}", &guid)))
+	{
+		printf("failed to read guid1\n");
+		return -1;
+	}
+	GUID guid2;
+	if (FAILED(CLSIDFromString(L"{1c56b3e4-e6ea-4ced-8a74-73b72c6bd435}", &guid2)))
+	{
+		printf("failed to read guid2\n");
+		return -1;
+	}
+	printf("Initialize immersive shell\n");
+
+	hr = CoCreateInstance(
+		guid,
+		0,
+		1u,
+		guid2,
+		(LPVOID*)&ImmersiveShellBUilder);
+
+	if (FAILED(hr))
+	{
+		printf("Failed to create the immersive shell builder: %d\n", hr);
+		system("pause");
+		return hr;
+	}
+	IImmersiveShellController* controller = NULL;
+	hr = ImmersiveShellBUilder->CreateImmersiveShellController(&controller); //CImmersiveShellController
+	if (FAILED(hr))
+	{
+		printf("Failed to create the immersive shell controller: %d\n", hr);
+		system("pause");
+		return hr;
+	}
+	hr = controller->Start();
+
+	if (FAILED(hr))
+	{
+		printf("immersive shell start failed with %d\n", hr);
+	}
+	else
+	{
+		printf("Immersive shell created. Starting message loop\n");
+
+		MSG msg = { };
+		while (TRUE)
+		{
+			while (!GetMessage(&msg, NULL, 0, 0))
+				WaitMessage();
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+		printf("exit!\n");
+	}
+	return S_OK;
+}
+
+HRESULT CustomShell::InitStuff()
 {
+	MSG Msg;
+	memset(&Msg, 0, sizeof(MSG));
+	SetCurrentProcessExplicitAppUserModelID(L"Microsoft.Windows.Explorer");
+	SetErrorMode(0x4001u);
+	SetPriorityClass(GetCurrentProcess(), 0x80u);
+	EnableMouseInPointer(FALSE);
+	SetExplorerServerModeFunc(3);
+	SCNSystemInitializeFunc();
+	SetPriorityClass(GetCurrentProcess(), 0x20u);
 
+
+	ShellDDEInitFunc(TRUE);
+	return S_OK;
 }
+

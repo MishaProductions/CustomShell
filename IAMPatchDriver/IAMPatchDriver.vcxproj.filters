@@ -19,7 +19,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="KMDFDriver1.inf">
+    <Inf Include="IAMPatchDriver.inf">
       <Filter>Driver Files</Filter>
     </Inf>
   </ItemGroup>

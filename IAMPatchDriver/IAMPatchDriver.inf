@@ -1,5 +1,5 @@
 ;
-; KMDFDriver1.inf
+; IAMPatchDriver.inf
 ;
 
 [Version]
@@ -7,19 +7,19 @@ Signature="$WINDOWS NT$"
 Class=System ; TODO: specify appropriate Class
 ClassGuid={4d36e97d-e325-11ce-bfc1-08002be10318} ; TODO: specify appropriate ClassGuid
 Provider=%ManufacturerName%
-CatalogFile=KMDFDriver1.cat
+CatalogFile=IAMPatchDriver.cat
 DriverVer= ; TODO: set DriverVer in stampinf property pages
 PnpLockdown=1
 
 [DestinationDirs]
 DefaultDestDir = 12
-KMDFDriver1_Device_CoInstaller_CopyFiles = 11
+IAMPatchDriver_Device_CoInstaller_CopyFiles = 11
 
 [SourceDisksNames]
 1 = %DiskName%,,,""
 
 [SourceDisksFiles]
-KMDFDriver1.sys  = 1,,
+IAMPatchDriver.sys  = 1,,
 WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
 
 ;*****************************************
@@ -30,48 +30,48 @@ WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with
 %ManufacturerName%=Standard,NT$ARCH$
 
 [Standard.NT$ARCH$]
-%KMDFDriver1.DeviceDesc%=KMDFDriver1_Device, Root\KMDFDriver1 ; TODO: edit hw-id
+%IAMPatchDriver.DeviceDesc%=IAMPatchDriver_Device, Root\IAMPatchDriver ; TODO: edit hw-id
 
-[KMDFDriver1_Device.NT]
+[IAMPatchDriver_Device.NT]
 CopyFiles=Drivers_Dir
 
 [Drivers_Dir]
-KMDFDriver1.sys
+IAMPatchDriver.sys
 
 ;-------------- Service installation
-[KMDFDriver1_Device.NT.Services]
-AddService = KMDFDriver1,%SPSVCINST_ASSOCSERVICE%, KMDFDriver1_Service_Inst
+[IAMPatchDriver_Device.NT.Services]
+AddService = IAMPatchDriver,%SPSVCINST_ASSOCSERVICE%, IAMPatchDriver_Service_Inst
 
-; -------------- KMDFDriver1 driver install sections
-[KMDFDriver1_Service_Inst]
-DisplayName    = %KMDFDriver1.SVCDESC%
+; -------------- IAMPatchDriver driver install sections
+[IAMPatchDriver_Service_Inst]
+DisplayName    = %IAMPatchDriver.SVCDESC%
 ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
 StartType      = 3               ; SERVICE_DEMAND_START
 ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
-ServiceBinary  = %12%\KMDFDriver1.sys
+ServiceBinary  = %12%\IAMPatchDriver.sys
 
 ;
-;--- KMDFDriver1_Device Coinstaller installation ------
+;--- IAMPatchDriver_Device Coinstaller installation ------
 ;
 
-[KMDFDriver1_Device.NT.CoInstallers]
-AddReg=KMDFDriver1_Device_CoInstaller_AddReg
-CopyFiles=KMDFDriver1_Device_CoInstaller_CopyFiles
+[IAMPatchDriver_Device.NT.CoInstallers]
+AddReg=IAMPatchDriver_Device_CoInstaller_AddReg
+CopyFiles=IAMPatchDriver_Device_CoInstaller_CopyFiles
 
-[KMDFDriver1_Device_CoInstaller_AddReg]
+[IAMPatchDriver_Device_CoInstaller_AddReg]
 HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
 
-[KMDFDriver1_Device_CoInstaller_CopyFiles]
+[IAMPatchDriver_Device_CoInstaller_CopyFiles]
 WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
 
-[KMDFDriver1_Device.NT.Wdf]
-KmdfService =  KMDFDriver1, KMDFDriver1_wdfsect
-[KMDFDriver1_wdfsect]
+[IAMPatchDriver_Device.NT.Wdf]
+KmdfService =  IAMPatchDriver, IAMPatchDriver_wdfsect
+[IAMPatchDriver_wdfsect]
 KmdfLibraryVersion = $KMDFVERSION$
 
 [Strings]
 SPSVCINST_ASSOCSERVICE= 0x00000002
 ManufacturerName="<Your manufacturer name>" ;TODO: Replace with your manufacturer name
-DiskName = "KMDFDriver1 Installation Disk"
-KMDFDriver1.DeviceDesc = "KMDFDriver1 Device"
-KMDFDriver1.SVCDESC = "KMDFDriver1 Service"
+DiskName = "IAMPatchDriver Installation Disk"
+IAMPatchDriver.DeviceDesc = "IAMPatchDriver Device"
+IAMPatchDriver.SVCDESC = "IAMPatchDriver Service"

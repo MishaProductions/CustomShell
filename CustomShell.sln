@@ -7,7 +7,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CustomShell", "CustomShell\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imrsivAdder", "imrsivAdder\imrsivAdder.vcxproj", "{3BCB72AD-8817-4C93-8D90-CA45EA9C8539}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KMDF Driver1", "KMDF Driver1\KMDF Driver1.vcxproj", "{CE709837-025B-4BCF-A0FD-DB0716B00DA2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KMDF Driver1", "IAMPatchDriver\IAMPatchDriver.vcxproj", "{CE709837-025B-4BCF-A0FD-DB0716B00DA2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
