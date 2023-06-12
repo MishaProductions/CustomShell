@@ -177,25 +177,6 @@ LRESULT StaticWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		{
 			printf("Failed to create thread reference");
 		}
-
-		//auto proc3 = (NtUserAcquireIAMKey)GetProcAddress(user32, (LPCSTR)2509); //NtUserAcquireIAMKey
-		//ULONG64 key = 0;
-		//proc3(&key);
-		//
-		//if (key == 0)
-		//{
-		//	printf("Failed to get IAM key\n");
-		//	return 0;
-		//}
-
-		//auto proc4 = (NtUserEnableIAMAccess)GetProcAddress(user32, (LPCSTR)2510); //NtUserEnableIAMAccess
-		//if (!proc4(key, TRUE))
-		//{
-		//	printf("Failed to enable IAM with key\n");
-		//}
-		//else {
-		//	printf("successfully enabled IAM\n");
-		//}
 	}
 	else if (msg == WM_SIZE)
 	{
@@ -217,21 +198,31 @@ LRESULT StaticWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		EndPaint(hwnd, &Paint);
 		return 0;
 	}
-	else if (msg == 537)
-	{
-		if (w == 24 || w == 32772 || w == 0x8000)
-		{
-			//PostMessageW(*((HWND*)this + 6), 0x44Bu, 0i64, 0i64);
-
-			return 0;
-		}
-	}
 	return DefWindowProc(hwnd, msg, w, l);
 }
 
 int main()
 {
-	WNDCLASSEXW progmanclass; // [rsp+60h] [rbp-58h] BYREF
+
+	auto lib = LoadLibrary(TEXT("user32.dll"));
+
+	auto clr = (NtUserClearForeground)GetProcAddress(lib, (LPCSTR)2563);
+	auto get = (NtUserAcquireIAMKey)GetProcAddress(lib, (LPCSTR)2509);
+	auto enable = (NtUserEnableIAMAccess)GetProcAddress(lib, (LPCSTR)2510);
+	ULONG64 key=0;
+	/*if (!get(&key))
+	{
+		printf("failed to get key: %d\n", GetLastError());
+		return -1;
+	}*/
+	printf("key: %d\n", key);
+	if (!enable(key, TRUE))
+	{
+		printf("failed to enable access\n");
+		return -1;
+	}
+
+	WNDCLASSEXW progmanclass;
 
 	progmanclass.cbClsExtra = 0;
 	progmanclass.hIcon = 0i64;
@@ -253,32 +244,16 @@ int main()
 	}
 	printf("create progman\n");
 	auto Progman = CreateWindowW(L"Progman", TEXT("Program Manager"), 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	//Thrd(NULL);
+	Thrd(NULL);
 
-	auto lib = LoadLibrary(TEXT("user32.dll"));
-
-	auto clr = (NtUserClearForeground)GetProcAddress(lib, (LPCSTR)2563);
-	auto get = (NtUserAcquireIAMKey)GetProcAddress(lib, (LPCSTR)2509);
-	auto enable = (NtUserEnableIAMAccess)GetProcAddress(lib, (LPCSTR)2510);
-	ULONG64 key;
-	if (!get(&key))
-	{
-		printf("failed to get key: %d\n", GetLastError());
-		return -1;
-	}
-	printf("key: %d\n", key);
-	if (!enable(key, TRUE))
-	{
-		printf("failed to enable access\n");
-		return -1;
-	}
-	if (!clr())
-	{
-		printf("failure: %d\n", GetLastError());
-		system("pause");
-	}
-	else
-	{
-		printf("OK\n");
-	}
+	
+	//if (!clr())
+	//{
+	//	printf("failure: %d\n", GetLastError());
+	//	system("pause");
+	//}
+	//else
+	//{
+	//	printf("OK\n");
+	//}
 }

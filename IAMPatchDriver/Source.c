@@ -6,21 +6,16 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-unsigned __int64 _strtoui64(
-	const char* nptr,
-	char** endptr,
-	int base
-);
-
-
-CHAR IsImmersiveBrokerFuncOrignalBytes[14] = { 0 };
+CHAR IsImmersiveBrokerFuncOrignalBytes[7] = { 0 };
 ULONG_PTR IsImmersiveBrokerFuncAddr = NULL;
 
-CHAR IAMThreadAccessGrantedFuncOrignalBytes[14] = { 0 };
+CHAR IAMThreadAccessGrantedFuncOrignalBytes[24] = { 0 };
 ULONG_PTR IAMThreadAccessGrantedFuncAddr = NULL;
 
-CHAR NtUserEnableIAMAccessFuncOrignalBytes[14] = { 0 };
+CHAR NtUserEnableIAMAccessFuncOrignalBytes[24] = { 0 };
 ULONG_PTR NtUserEnableIAMAccessFuncAddr = NULL;
+
+static int g_enable = TRUE;
 
 NTSTATUS Overwrite(PVOID Address, PVOID Data, ULONG Size) {
 	PHYSICAL_ADDRESS PhysAddress = MmGetPhysicalAddress(Address);
@@ -200,14 +195,14 @@ VOID DriverUnload(PDRIVER_OBJECT DriverObject) {
 	KAPC_STATE state;
 	KeStackAttachProcess((PKPROCESS)TargetProcess, &state);
 
-	Status = Overwrite(IsImmersiveBrokerFuncAddr, (PVOID)IsImmersiveBrokerFuncOrignalBytes, 14);
+	Status = Overwrite(IsImmersiveBrokerFuncAddr, (PVOID)IsImmersiveBrokerFuncOrignalBytes, 7);
 
 	if (Status != STATUS_SUCCESS)
 		DbgPrint("[!] Failed to restore the orignal IsImmersiveBroker function\n");
 	else
 		DbgPrint("[+] Successfully restored the orignal IsImmersiveBroker function\n");
 
-	Status = Overwrite(IAMThreadAccessGrantedFuncAddr, (PVOID)IAMThreadAccessGrantedFuncOrignalBytes, 14);
+	Status = Overwrite(IAMThreadAccessGrantedFuncAddr, (PVOID)IAMThreadAccessGrantedFuncOrignalBytes, 18);
 
 	if (Status != STATUS_SUCCESS)
 		DbgPrint("[!] Failed to restore the orignal IAMThreadAccessGranted function\n");
@@ -215,7 +210,7 @@ VOID DriverUnload(PDRIVER_OBJECT DriverObject) {
 		DbgPrint("[+] Successfully restored the orignal IAMThreadAccessGranted function\n");
 
 
-	Status = Overwrite(NtUserEnableIAMAccessFuncAddr, (PVOID)NtUserEnableIAMAccessFuncOrignalBytes, 14);
+	Status = Overwrite(NtUserEnableIAMAccessFuncAddr, (PVOID)NtUserEnableIAMAccessFuncOrignalBytes, 24);
 
 	if (Status != STATUS_SUCCESS)
 		DbgPrint("[!] Failed to restore the orignal NtUserEnableIAMAccess function\n");
@@ -227,24 +222,8 @@ VOID DriverUnload(PDRIVER_OBJECT DriverObject) {
 }
 typedef int(IsImmersiveBrokerFunc)(__int64 unknown);
 
-int IsImmersiveBrokerHook(__int64 unknown)
-{
-	return 1;
-}
-static int g_enable = FALSE;
-int IAMThreadAccessGrantedHook(struct tagIAM_THREAD* thread)
-{
-	DbgPrint("[*] IAMThreadAccessGrantedHook called\n");
-	return g_enable;
-}
 
 
-
-__int64 __fastcall NtUserEnableIAMAccessHook(LONG64* key, int enable)
-{
-	g_enable = enable;
-	return TRUE;
-}
 
 ULONG_PTR GetPointerToIAMThreadAccessGranted()
 {
@@ -375,10 +354,10 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject,
 	}
 	else
 	{
-		DbgPrint("[*] Found IsImmersiveBroker\n");
+		DbgPrint("[*] Found IsImmersiveBroker at %lu\n", (ULONG)IsImmersiveBrokerFuncAddr);
 	}
 
-	RtlCopyMemory(IsImmersiveBrokerFuncOrignalBytes, IsImmersiveBrokerFuncAddr, 14);
+	RtlCopyMemory(IsImmersiveBrokerFuncOrignalBytes, IsImmersiveBrokerFuncAddr, 7);
 
 	if (IsImmersiveBrokerFuncOrignalBytes[0])
 		DbgPrint("[+] Copied over IsImmersiveBroker\n");
@@ -393,17 +372,14 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject,
 			IsImmersiveBrokerFuncOrignalBytes[i] & 0xff);
 
 #if defined(_M_X64)
-	CHAR Patch[] = {
-		0x49, 0xba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, // mov r10, address
-		0x41, 0xff, 0xe2 // jmp r10
+	CHAR IsImmersiveBrokerPatch[] = {
+		0x48, 0x31, 0xC0, //xor    rax, rax
+		0x48, 0xFF, 0xC0, //inc    rax
+		0xC3, //ret
 	};;
 
-	ULONG_PTR IsImmersiveBrokerAddress = (ULONG_PTR)IsImmersiveBrokerHook;
-	CHAR* IsImmersiveBrokerAddressBytes = (CHAR*)&IsImmersiveBrokerAddress;
 
-	RtlCopyMemory(&Patch[2], IsImmersiveBrokerAddressBytes, sizeof(ULONG_PTR));
-
-	Status = Overwrite(IsImmersiveBrokerFuncAddr, (PVOID)Patch, sizeof(Patch));
+	Status = Overwrite(IsImmersiveBrokerFuncAddr, (PVOID)IsImmersiveBrokerPatch, sizeof(IsImmersiveBrokerPatch));
 
 	if (Status != STATUS_SUCCESS) {
 		DbgPrint("[!] Failed to overwrite IsImmersiveBroker\n");
@@ -436,7 +412,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject,
 	}
 	else
 	{
-		DbgPrint("[*] Found IAMKeyAcquired\n");
+		DbgPrint("[*] Found IAMThreadAccessGranted\n");
 		DbgPrint("[*] IAMThreadAccessGranted pointer: %lu\n", (ULONG)IAMThreadAccessGrantedFuncAddr);
 	}
 	char* ptr = (char*)IAMThreadAccessGrantedFuncAddr;
@@ -446,7 +422,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject,
 		DbgPrint("0x%x ", ptr[i] & 0xff);
 	DbgPrint("\n");
 
-	RtlCopyMemory(IAMThreadAccessGrantedFuncOrignalBytes, IAMThreadAccessGrantedFuncAddr, 14);
+	RtlCopyMemory(IAMThreadAccessGrantedFuncOrignalBytes, IAMThreadAccessGrantedFuncAddr, 24);
 
 	if (IAMThreadAccessGrantedFuncOrignalBytes[0])
 		DbgPrint("[+] Copied over IAMThreadAccessGranted\n");
@@ -464,17 +440,18 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject,
 			IAMThreadAccessGrantedFuncOrignalBytes[i] & 0xff);
 
 #if defined(_M_X64)
-	CHAR Patch2[] = {
-		0x49, 0xba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, // mov r10, address
-		0x41, 0xff, 0xe2 // jmp r10
+	CHAR IAMThreadAccessGrantedPatch[] = {
+		0x41, 0x52, //push r10
+		0x49, 0xBA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //movabs r10, address
+		0x41, 0x8B, 0x02, //mov eax, dword ptr [r10]
+		0x41, 0x5A, //pop r10
+		0xC3 //ret
 	};
+	ULONG_PTR sourceAddress = (ULONG_PTR)&g_enable;
+	CHAR* sourceAddressBytes = (CHAR*)&sourceAddress;
+	RtlCopyMemory(&IAMThreadAccessGrantedPatch[4], sourceAddressBytes, sizeof(ULONG_PTR));
 
-	ULONG_PTR IsIAMThreadAddress = (ULONG_PTR)IAMThreadAccessGrantedHook;
-	CHAR* IsIAMThreadAddressBytes = (CHAR*)&IsIAMThreadAddress;
-
-	RtlCopyMemory(&Patch2[2], IsIAMThreadAddressBytes, sizeof(ULONG_PTR));
-
-	Status = Overwrite(IAMThreadAccessGrantedFuncAddr, (PVOID)Patch2, sizeof(Patch2));
+	Status = Overwrite(IAMThreadAccessGrantedFuncAddr, (PVOID)IAMThreadAccessGrantedPatch, sizeof(IAMThreadAccessGrantedPatch));
 
 	if (Status != STATUS_SUCCESS) {
 		DbgPrint("[!] Failed to overwrite IAMThreadAccessGranted\n");
@@ -507,7 +484,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject,
 	}
 	else
 	{
-		DbgPrint("[*] Found NtUserEnableIAMAccess\n");
+		DbgPrint("[*] Found NtUserEnableIAMAccess at %lu\n", (ULONG)NtUserEnableIAMAccessFuncAddr);
 	}
 	char* ptr3 = (char*)NtUserEnableIAMAccessFuncAddr;
 
@@ -516,7 +493,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject,
 		DbgPrint("0x%x ", ptr3[i] & 0xff);
 	DbgPrint("\n");
 
-	RtlCopyMemory(NtUserEnableIAMAccessFuncOrignalBytes, NtUserEnableIAMAccessFuncAddr, 14);
+	RtlCopyMemory(NtUserEnableIAMAccessFuncOrignalBytes, NtUserEnableIAMAccessFuncAddr, 24);
 
 	if (NtUserEnableIAMAccessFuncOrignalBytes[0])
 		DbgPrint("[+] Copied over NtUserEnableIAMAccess\n");
@@ -535,26 +512,28 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject,
 
 #if defined(_M_X64)
 	//r15d register contains address to the pointer of g_enabled
-	CHAR Patch3[] = {
-		0x41, 0xBF, 0x00, 0x00, 0x00, 0x00, //mov r15d, <ADDRESS>
-		0x89, 0x54, 0x24, 0x10,             //mov dword ptr [rsp + 0x10], edx
-		0x48, 0x89, 0x4C, 0x24, 0x08,       //mov qword ptr [rsp + 8], rcx
-		0x8B, 0x44, 0x24, 0x10,             //mov eax, dword ptr[rsp + 0x10]
-		0x67, 0x41, 0x89, 0x07,             //mov dword ptr [r15d], eax
-		0xB8, 0x01, 0x00, 0x00, 0x00,       //mov eax, 1
-		0xC3                                //ret
+	CHAR NtUserEnableIAMAccessPatch[] = {
+
+		 0x41, 0x52, //push r10
+		 0x49, 0xBA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //mov r10, address
+		 0x41, 0x89, 0x12, //mov    DWORD PTR [r10], edx
+		 0x48, 0x31, 0xC0, //xor    rax, rax
+		 0x48, 0xFF, 0xC0, //inc rax
+		 0x41, 0x5A, //pop r10
+		 0xC3 //ret
 	};
 
-	ULONG_PTR NtUserEnableIAMAccessAddress = (ULONG_PTR)NtUserEnableIAMAccessHook;
-	CHAR* NtUserEnableIAMAccessAddressBytes = (CHAR*)&NtUserEnableIAMAccessAddress;
-	int* var = &g_enable;
-	DbgPrint("int size: %d\n", sizeof(int));
-	DbgPrint("int pointer: %d\n", (int)(int*)&g_enable);
-	int source = (int)&g_enable;
-	RtlCopyMemory(&Patch3[2], &source, sizeof(int));
+	ULONG_PTR sourceAddress2 = (ULONG_PTR)&g_enable;
+	CHAR* sourceAddressBytes2 = (CHAR*)&sourceAddress2;
+	RtlCopyMemory(&NtUserEnableIAMAccessPatch[4], &sourceAddressBytes2, sizeof(ULONG_PTR));
+	DbgPrint("[*] NtUserEnableIAMAccessPatched[]: ");
+	for (INT i = 0; i < 14; i++)
+		DbgPrint("%x ",NtUserEnableIAMAccessFuncOrignalBytes[i] & 0xff);
+	DbgPrint("\n");
+
 	DbgPrint("wrote the address");
 
-	Status = Overwrite(NtUserEnableIAMAccessFuncAddr, (PVOID)Patch3, sizeof(Patch3));
+	Status = Overwrite(NtUserEnableIAMAccessFuncAddr, (PVOID)NtUserEnableIAMAccessPatch, sizeof(NtUserEnableIAMAccessPatch));
 
 	if (Status != STATUS_SUCCESS) {
 		DbgPrint("[!] Failed to overwrite NtUserEnableIAMAccess\n");

@@ -373,3 +373,9 @@ struct tagIAM_THREAD
 	struct tagTHREADINFO* pti;
 	struct tagDESKTOP* pdesk;
 } IAM_THREAD;
+
+unsigned __int64 _strtoui64(
+	const char* nptr,
+	char** endptr,
+	int base
+);
