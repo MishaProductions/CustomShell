@@ -41,7 +41,7 @@ CustomShell::CustomShell()
 }
 #pragma data_seg(.imrsiv)
 
-LRESULT StaticWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
+LRESULT ProgmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 {
 	if (msg == WM_CREATE)
 	{
@@ -63,6 +63,8 @@ LRESULT StaticWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 			printf("SetShellWindow failed\n");
 			return 0;
 		}
+		SendMessageW(hwnd, WM_CHANGEUISTATE, 3u, 0);
+		SendMessageW(hwnd, WM_UPDATEUISTATE, 0x10001u, 0);
 
 		SetProp(hwnd, TEXT("NonRudeHWND"), (HANDLE)HANDLE_FLAG_INHERIT);
 		SetProp(hwnd, TEXT("AllowConsentToStealFocus"), (HANDLE)HANDLE_FLAG_INHERIT);
@@ -91,7 +93,7 @@ LRESULT StaticWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		RECT Rect;
 		HDC dc = BeginPaint(hwnd, &Paint);
 		GetClientRect(hwnd, &Rect);
-		FillRect(dc, &Rect, GetSysColorBrush(1));
+		FillRect(dc, &Rect, CreateSolidBrush(RGB(0, 255, 0)));
 		EndPaint(hwnd, &Paint);
 		return 0;
 	}
@@ -189,7 +191,7 @@ HRESULT CustomShell::Run()
 	progmanclass.hIconSm = 0;
 	progmanclass.cbSize = 80;
 	progmanclass.style = 8;
-	progmanclass.lpfnWndProc = (WNDPROC)StaticWndProc;
+	progmanclass.lpfnWndProc = (WNDPROC)ProgmanWndProc;
 	progmanclass.cbWndExtra = 8;
 	progmanclass.hInstance = GetModuleHandle(NULL);
 	progmanclass.hCursor = LoadCursor(NULL, IDC_ARROW);
@@ -201,9 +203,9 @@ HRESULT CustomShell::Run()
 		printf("failed to register progman class %d", GetLastError());
 		return -1;
 	}
-	printf("create progman\n");
-	auto Progman = CreateWindowW(L"Progman", TEXT("Program Manager"), 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
+	printf("Create program manager\n");
+	auto Progman = CreateWindowExW(128, L"Progman", TEXT("Program Manager"), 0x82000000, GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN), GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN), 0, 0, progmanclass.hInstance, 0);
+	ShowWindow(Progman, SW_SHOW);
 
 	printf("create taskman\n");
 	//create taskman class (handles taskbar buttons)
@@ -228,6 +230,9 @@ HRESULT CustomShell::Run()
 		return -1;
 	}
 	auto Taskman = CreateWindowW(L"TaskmanWndClass", NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+
+	//create immersive
 
 	IImmersiveShellBuilder* ImmersiveShellBUilder = NULL;
 	GUID guidImmersiveShell;
@@ -262,12 +267,22 @@ HRESULT CustomShell::Run()
 	}
 	IImmersiveShellController* controller = NULL;
 	hr = ImmersiveShellBUilder->CreateImmersiveShellController(&controller); //CImmersiveShellController
+
+
+
+
 	if (FAILED(hr))
 	{
 		printf("Failed to create the immersive shell controller: %d\n", hr);
 		system("pause");
 		return hr;
 	}
+
+	IUnknown* ppv = NULL;
+	int a = CoCreateInstance(guidImmersiveShell, 0, 0x404u, IID_IServiceProvider, (LPVOID*)&ppv);
+
+
+
 	hr = controller->Start();
 
 	if (FAILED(hr))

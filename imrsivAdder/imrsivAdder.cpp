@@ -139,7 +139,7 @@ typedef BOOL(WINAPI* NtUserAcquireIAMKey)( //2509
 typedef HRESULT(CALLBACK* SetShellWindow)(HWND hwnd);
 LONG PcRef = 0;
 IUnknown* thing2 = NULL;
-LRESULT StaticWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
+LRESULT ProgmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 {
 	if (msg == WM_CREATE)
 	{
@@ -162,8 +162,8 @@ LRESULT StaticWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 			return 0;
 		}
 
-		SendMessageW(hwnd, 295u, 3ui64, 0i64);    // WM_CHANGEUISTATE
-		SendMessageW(hwnd, 296u, 0x10001ui64, 0i64);// WM_UPDATEUISTATE
+		SendMessageW(hwnd, 295u, 3u, 0i64);    // WM_CHANGEUISTATE
+		SendMessageW(hwnd, 296u, 0x10001u, 0i64);// WM_UPDATEUISTATE
 
 		SetPropW(hwnd, L"AllowConsentToStealFocus", (HANDLE)HANDLE_FLAG_INHERIT);
 		SetPropW(hwnd, L"NonRudeHWND", (HANDLE)HANDLE_FLAG_INHERIT);
@@ -230,7 +230,7 @@ int main()
 	progmanclass.hIconSm = 0i64;
 	progmanclass.cbSize = 80;
 	progmanclass.style = 8;
-	progmanclass.lpfnWndProc = (WNDPROC)StaticWndProc;
+	progmanclass.lpfnWndProc = (WNDPROC)ProgmanWndProc;
 	progmanclass.cbWndExtra = 8;
 	progmanclass.hInstance = GetModuleHandle(NULL);
 	progmanclass.hCursor = LoadCursorW(0, (LPCWSTR)0x7F00);
