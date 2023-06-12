@@ -222,7 +222,7 @@ int main()
 		return -1;
 	}
 
-	WNDCLASSEXW progmanclass;
+	WNDCLASSEXW progmanclass = {};
 
 	progmanclass.cbClsExtra = 0;
 	progmanclass.hIcon = 0i64;

@@ -1,64 +1,37 @@
 #include "CustomShell.h"
 #include <stdio.h>
-
-typedef HRESULT(CALLBACK* SetExplorerServerMode)(DWORD flags);
-typedef HRESULT(CALLBACK* ShellDDEInit)(BOOL register);
-typedef HRESULT(CALLBACK* SCNSystemInitialize)();
-typedef HRESULT(CALLBACK* SetShellWindow)(HWND hwnd);
-typedef BOOL(WINAPI* NtUserAcquireIAMKey)(
-	OUT ULONG64* pkey);
-typedef BOOL(WINAPI* NtUserEnableIAMAccess)(
-	IN ULONG64 key,
-	IN BOOL enable);
-typedef HWND(WINAPI* GetTaskmanWindow)();
-typedef BOOL(WINAPI* SetTaskmanWindow)(HWND handle);
-
-interface IImmersiveShellController : IUnknown
-{
-	virtual int Start();
-	virtual int Stop(void* unknown);
-	virtual int SetCreationBehavior(void* structure);
-
-};
-interface IImmersiveShellBuilder : IUnknown
-{
-	virtual int CreateImmersiveShellController(IImmersiveShellController** other);
-};
+#include "undoc.h"
 
 GetTaskmanWindow GetTaskmanWindowFunc = NULL;
 SetTaskmanWindow SetTaskmanWindowFunc = NULL;
 SetExplorerServerMode SetExplorerServerModeFunc = NULL;
 SCNSystemInitialize SCNSystemInitializeFunc = NULL;
 ShellDDEInit ShellDDEInitFunc = NULL;
+SetShellWindow SetShellWindowFunc = NULL;
+
+AudioHIDInitialize AudioHIDInitializeFunc = NULL;
+AudioHIDShutdown AudioHIDShutdownFunc = NULL;
+AudioHIDProcessMessage AudioHIDProcessMessageFunc = NULL;
+AudioHIDProcessAppCommand AudioHIDProcessAppCommandFunc = NULL;
 
 long PcRef = 0;
 IUnknown* ThreadObject = NULL;
+UINT shellhook = 0;
 
+IImmersiveShellHookService* ShellHookService;
+
+#pragma data_seg(.imrsiv) long x=0;
 
 CustomShell::CustomShell()
 {
 
 }
-#pragma data_seg(.imrsiv)
 
 LRESULT ProgmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 {
 	if (msg == WM_CREATE)
 	{
-		auto user32 = LoadLibrary(TEXT("user32.dll"));
-		if (user32 == NULL)
-		{
-			printf("Failed to load user32.dll\n");
-		}
-		auto SetShellWindowFunction = (SetShellWindow)GetProcAddress(user32, "SetShellWindow");
-
-		if (SetShellWindowFunction == NULL)
-		{
-			printf("failed to get setshellwindow pointer\n");
-			return 0;
-		}
-
-		if (FAILED(SetShellWindowFunction(hwnd)))
+		if (FAILED(SetShellWindowFunc(hwnd)))
 		{
 			printf("SetShellWindow failed\n");
 			return 0;
@@ -108,6 +81,11 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		{
 			printf("failed to register taskman window\n");
 		}
+		shellhook = RegisterWindowMessageW(L"SHELLHOOK");
+		if (!shellhook)
+		{
+			printf("failed to register shellhook\n");
+		}
 		RegisterShellHookWindow(hwnd);
 	}
 	else if (msg == WM_DESTROY)
@@ -118,26 +96,88 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		}
 		DeregisterShellHookWindow(hwnd);
 	}
+	else
+	{
+		if (msg != shellhook && msg != WM_HOTKEY)
+		{
+			return DefWindowProc(hwnd, msg, w, l);
+		}
+
+		if (ShellHookService)
+		{
+			BOOL handle = TRUE;
+			if ((UINT)w == 12)
+			{
+				ShellHookService->SetTargetWindowForSerialization((HWND)l);
+			}
+			else if ((UINT)w == 0x32)
+			{
+				handle = FALSE;
+			}
+			if (handle)
+			{
+				ShellHookService->PostShellHookMessage(w, l);
+			}
+			return 0;
+		}
+
+		GUID guidImmersiveShell;
+		CLSIDFromString(L"{c2f03a33-21f5-47fa-b4bb-156362a2f239}", &guidImmersiveShell);
+
+		GUID SID_ImmersiveShellHookService;
+		CLSIDFromString(L"{4624bd39-5fc3-44a8-a809-163a836e9031}", &SID_ImmersiveShellHookService);
+
+		GUID SID_Unknown;
+		CLSIDFromString(L"{914d9b3a-5e53-4e14-bbba-46062acb35a4}", &SID_Unknown);
+
+		IServiceProvider* ImmersiveShell;
+		if (CoCreateInstance(guidImmersiveShell, 0, 0x404u, IID_IServiceProvider, (LPVOID*) &ImmersiveShell) >= 0)
+		{
+			printf("created COM immersive shell thingy\n");
+
+			ImmersiveShell->QueryService(SID_ImmersiveShellHookService, SID_Unknown, (void**)&ShellHookService);
+		}
+		else
+		{
+			printf("failed to create immersive shell class: %d\n", GetLastError());
+		}
+	}
+	return DefWindowProc(hwnd, msg, w, l);
+}
+
+LRESULT TrayWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
+{
 
 	return DefWindowProc(hwnd, msg, w, l);
 }
+
 HRESULT CustomShell::Run()
 {
 	//Setup our functions
 	auto user32 = LoadLibrary(TEXT("user32.dll"));
 	auto shell32 = LoadLibrary(TEXT("shell32.dll"));
 	auto shdocvw = LoadLibrary(TEXT("shdocvw.dll"));
-	if (user32 == NULL)
+	auto SndVolSSO = LoadLibrary(TEXT("SndVolSSO.dll"));
+
+	if (!user32)
 	{
 		printf("Failed to load user32.dll\n");
+		return GetLastError();
 	}
-	if (shell32 == NULL)
+	if (!shell32)
 	{
 		printf("Failed to load shell32.dll\n");
+		return GetLastError();
 	}
-	if (shdocvw == NULL)
+	if (!shdocvw)
 	{
 		printf("Failed to load shdocvw.dll\n");
+		return GetLastError();
+	}
+	if (!SndVolSSO)
+	{
+		printf("Failed to load SndVolSSO.dll\n");
+		return GetLastError();
 	}
 #pragma region  get function pointers
 	GetTaskmanWindowFunc = (GetTaskmanWindow)GetProcAddress(user32, "GetTaskmanWindow");
@@ -173,6 +213,47 @@ HRESULT CustomShell::Run()
 		return GetLastError();
 	}
 
+	SetShellWindowFunc = (SetShellWindow)GetProcAddress(user32, "SetShellWindow");
+	if (SetShellWindowFunc == NULL)
+	{
+		printf("failed to get pointer to SetShellWindow()\n");
+		return GetLastError();
+	}
+
+	AudioHIDInitializeFunc = (AudioHIDInitialize)GetProcAddress(SndVolSSO, (LPCSTR)1);
+	if (AudioHIDInitializeFunc == NULL)
+	{
+		printf("failed to get pointer to AudioHIDInitialize()\n");
+		return GetLastError();
+	}
+
+	AudioHIDInitializeFunc = (AudioHIDInitialize)GetProcAddress(SndVolSSO, (LPCSTR)1);
+	if (AudioHIDInitializeFunc == NULL)
+	{
+		printf("failed to get pointer to AudioHIDInitialize()\n");
+		return GetLastError();
+	}
+
+	AudioHIDShutdownFunc = (AudioHIDShutdown)GetProcAddress(SndVolSSO, (LPCSTR)2);
+	if (AudioHIDShutdownFunc == NULL)
+	{
+		printf("failed to get pointer to AudioHIDShutdown()\n");
+		return GetLastError();
+	}
+
+	AudioHIDProcessMessageFunc = (AudioHIDProcessMessage)GetProcAddress(SndVolSSO, (LPCSTR)3);
+	if (AudioHIDProcessMessageFunc == NULL)
+	{
+		printf("failed to get pointer to AudioHIDProcessMessage()\n");
+		return GetLastError();
+	}
+
+	AudioHIDProcessAppCommandFunc = (AudioHIDProcessAppCommand)GetProcAddress(SndVolSSO, (LPCSTR)4);
+	if (AudioHIDProcessAppCommandFunc == NULL)
+	{
+		printf("failed to get pointer to AudioHIDProcessAppCommand()\n");
+		return GetLastError();
+	}
 #pragma endregion
 
 
@@ -181,10 +262,10 @@ HRESULT CustomShell::Run()
 	if (FAILED(hr)) return hr;
 
 
-	//Create program manager
+	// Create program manager
+	printf("Create program manager\n");
 
-	WNDCLASSEX progmanclass;
-
+	WNDCLASSEX progmanclass = {};
 	progmanclass.cbClsExtra = 0;
 	progmanclass.hIcon = 0;
 	progmanclass.lpszMenuName = 0;
@@ -203,13 +284,14 @@ HRESULT CustomShell::Run()
 		printf("failed to register progman class %d", GetLastError());
 		return -1;
 	}
-	printf("Create program manager\n");
+	
 	auto Progman = CreateWindowExW(128, L"Progman", TEXT("Program Manager"), 0x82000000, GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN), GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN), 0, 0, progmanclass.hInstance, 0);
 	ShowWindow(Progman, SW_SHOW);
 
+
+	// create taskman class (handles taskbar buttons)
 	printf("create taskman\n");
-	//create taskman class (handles taskbar buttons)
-	WNDCLASSEX taskmanclass;
+	WNDCLASSEX taskmanclass = {};
 
 	taskmanclass.cbClsExtra = 0;
 	taskmanclass.hIcon = 0;
@@ -229,14 +311,13 @@ HRESULT CustomShell::Run()
 		printf("failed to register taskman class %d", GetLastError());
 		return -1;
 	}
-	auto Taskman = CreateWindowW(L"TaskmanWndClass", NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	auto Taskman = CreateWindowExW(0, L"TaskmanWndClass", NULL, 0x82000000, 0, 0, 0, 0, 0, 0, 0, 0);
 
+	//create immersive shell
 
-	//create immersive
-
-	IImmersiveShellBuilder* ImmersiveShellBUilder = NULL;
-	GUID guidImmersiveShell;
-	CLSIDFromString(L"{c2f03a33-21f5-47fa-b4bb-156362a2f239}", &guidImmersiveShell); //imersive shell
+	IImmersiveShellBuilder* ImmersiveShellBuilder = NULL;
+	//GUID guidImmersiveShell;
+	//CLSIDFromString(L"{c2f03a33-21f5-47fa-b4bb-156362a2f239}", &guidImmersiveShell); //imersive shell
 
 	GUID guid;
 	if (FAILED(CLSIDFromString(L"{c71c41f1-ddad-42dc-a8fc-f5bfc61df957}", &guid)))
@@ -257,7 +338,7 @@ HRESULT CustomShell::Run()
 		0,
 		1u,
 		guid2,
-		(LPVOID*)&ImmersiveShellBUilder);
+		(LPVOID*)&ImmersiveShellBuilder);
 
 	if (FAILED(hr))
 	{
@@ -266,24 +347,15 @@ HRESULT CustomShell::Run()
 		return hr;
 	}
 	IImmersiveShellController* controller = NULL;
-	hr = ImmersiveShellBUilder->CreateImmersiveShellController(&controller); //CImmersiveShellController
-
-
-
-
+	hr = ImmersiveShellBuilder->CreateImmersiveShellController(&controller); //CImmersiveShellController
 	if (FAILED(hr))
 	{
 		printf("Failed to create the immersive shell controller: %d\n", hr);
 		system("pause");
 		return hr;
 	}
-
-	IUnknown* ppv = NULL;
-	int a = CoCreateInstance(guidImmersiveShell, 0, 0x404u, IID_IServiceProvider, (LPVOID*)&ppv);
-
-
-
 	hr = controller->Start();
+
 
 	if (FAILED(hr))
 	{
@@ -292,6 +364,46 @@ HRESULT CustomShell::Run()
 	else
 	{
 		printf("Immersive shell created. Starting message loop\n");
+
+		if (!CreateEventW(0, TRUE, 0, L"Local\\ShellStartupEvent"))
+		{
+			printf("Failed to create start event: %d\n", GetLastError());
+
+		}
+
+		HANDLE StartEvent = OpenEvent(2, FALSE, TEXT("Local\\ShellStartupEvent"));
+		if (!StartEvent)
+		{
+			printf("Failed to open start event: %d\n",GetLastError());
+		}
+		if (!SetEvent(StartEvent))
+		{
+			printf("Failed to set start event: %d\n", GetLastError());
+		}
+
+		//create the tray window
+		printf("create tray\n");
+		WNDCLASSEX trayclass = {};
+
+		trayclass.cbClsExtra = 0;
+		trayclass.hIcon = 0;
+		trayclass.lpszMenuName = 0;
+		trayclass.hIconSm = 0;
+		trayclass.cbSize = sizeof(WNDCLASSEXW);
+		trayclass.style = 8;
+		trayclass.lpfnWndProc = (WNDPROC)TrayWndProc;
+		trayclass.cbWndExtra = 8;
+		trayclass.hInstance = GetModuleHandle(NULL);
+		trayclass.hCursor = LoadCursor(NULL, IDC_ARROW);
+		trayclass.hbrBackground = (HBRUSH)2;
+		trayclass.lpszClassName = TEXT("Shell_TrayWnd");
+
+		if (!RegisterClassExW(&trayclass))
+		{
+			printf("failed to register taskman class %d", GetLastError());
+			return -1;
+		}
+		auto tray = CreateWindowExW(384, L"Shell_TrayWnd", NULL, 0x82000000, 0, 0, 0, 0, 0, 0, 0, 0);
 
 		MSG msg = { };
 		while (TRUE)
@@ -308,15 +420,14 @@ HRESULT CustomShell::Run()
 
 HRESULT CustomShell::InitStuff()
 {
-	MSG Msg;
-	memset(&Msg, 0, sizeof(MSG));
+	MSG Msg = {};
 	SetCurrentProcessExplicitAppUserModelID(L"Microsoft.Windows.Explorer");
-	SetErrorMode(0x4001u);
-	SetPriorityClass(GetCurrentProcess(), 0x80u);
+	SetErrorMode(0x4001);
+	SetPriorityClass(GetCurrentProcess(), 0x80);
 	EnableMouseInPointer(FALSE);
 	SetExplorerServerModeFunc(3);
 	SCNSystemInitializeFunc();
-	SetPriorityClass(GetCurrentProcess(), 0x20u);
+	SetPriorityClass(GetCurrentProcess(), 0x20);
 
 
 	ShellDDEInitFunc(TRUE);

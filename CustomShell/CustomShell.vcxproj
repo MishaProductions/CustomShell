@@ -146,6 +146,7 @@
   <ItemGroup>
     <ClInclude Include="resource.h" />
     <ClInclude Include="CustomShell.h" />
+    <ClInclude Include="undoc.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
