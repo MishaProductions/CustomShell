@@ -15,7 +15,7 @@ ULONG_PTR IAMThreadAccessGrantedFuncAddr = NULL;
 CHAR NtUserEnableIAMAccessFuncOrignalBytes[24] = { 0 };
 ULONG_PTR NtUserEnableIAMAccessFuncAddr = NULL;
 
-static int g_enable = TRUE;
+static int g_enable = FALSE;
 
 NTSTATUS Overwrite(PVOID Address, PVOID Data, ULONG Size) {
 	PHYSICAL_ADDRESS PhysAddress = MmGetPhysicalAddress(Address);
@@ -525,7 +525,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject,
 
 	ULONG_PTR sourceAddress2 = (ULONG_PTR)&g_enable;
 	CHAR* sourceAddressBytes2 = (CHAR*)&sourceAddress2;
-	RtlCopyMemory(&NtUserEnableIAMAccessPatch[4], &sourceAddressBytes2, sizeof(ULONG_PTR));
+	RtlCopyMemory(&NtUserEnableIAMAccessPatch[4], sourceAddressBytes2, sizeof(ULONG_PTR));
 	DbgPrint("[*] NtUserEnableIAMAccessPatched[]: ");
 	for (INT i = 0; i < 14; i++)
 		DbgPrint("%x ",NtUserEnableIAMAccessFuncOrignalBytes[i] & 0xff);
