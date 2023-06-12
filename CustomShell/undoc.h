@@ -27,7 +27,7 @@ interface IImmersiveShellController : IUnknown
 interface IImmersiveShellBuilder : IUnknown
 {
 	virtual int CreateImmersiveShellController(IImmersiveShellController** other);
-};//
+};
 
 interface IImmersiveShellHookService : IUnknown
 {

@@ -66,7 +66,7 @@ LRESULT ProgmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		RECT Rect;
 		HDC dc = BeginPaint(hwnd, &Paint);
 		GetClientRect(hwnd, &Rect);
-		FillRect(dc, &Rect, CreateSolidBrush(RGB(0, 255, 0)));
+		FillRect(dc, &Rect, CreateSolidBrush(RGB(0, 25, 0)));
 		EndPaint(hwnd, &Paint);
 		return 0;
 	}
@@ -95,6 +95,7 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 			SetTaskmanWindowFunc(NULL);
 		}
 		DeregisterShellHookWindow(hwnd);
+		ShellHookService = NULL;
 	}
 	else
 	{
@@ -135,7 +136,11 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		{
 			printf("created COM immersive shell thingy\n");
 
-			ImmersiveShell->QueryService(SID_ImmersiveShellHookService, SID_Unknown, (void**)&ShellHookService);
+			if (FAILED(ImmersiveShell->QueryService(SID_ImmersiveShellHookService, SID_Unknown, (void**)&ShellHookService)))
+			{
+				printf("failed to create service\n");
+			}
+			ImmersiveShell->Release();
 		}
 		else
 		{
@@ -314,10 +319,7 @@ HRESULT CustomShell::Run()
 	auto Taskman = CreateWindowExW(0, L"TaskmanWndClass", NULL, 0x82000000, 0, 0, 0, 0, 0, 0, 0, 0);
 
 	//create immersive shell
-
 	IImmersiveShellBuilder* ImmersiveShellBuilder = NULL;
-	//GUID guidImmersiveShell;
-	//CLSIDFromString(L"{c2f03a33-21f5-47fa-b4bb-156362a2f239}", &guidImmersiveShell); //imersive shell
 
 	GUID guid;
 	if (FAILED(CLSIDFromString(L"{c71c41f1-ddad-42dc-a8fc-f5bfc61df957}", &guid)))

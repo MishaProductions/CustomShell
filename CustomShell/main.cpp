@@ -137,6 +137,16 @@ int main()
     DoStuff(NULL);
 	system("pause");
 }
+
+int WinMain(
+	 HINSTANCE hInstance,
+	 HINSTANCE hPrevInstance,
+	 LPSTR     lpCmdLine,
+	 int       nShowCmd
+)
+{
+	DoStuff(NULL);
+}
 //DllMain
 //BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
 //{
