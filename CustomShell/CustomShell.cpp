@@ -1,5 +1,6 @@
 #include "CustomShell.h"
 #include <stdio.h>
+#include <wtsapi32.h>
 #include "undoc.h"
 
 GetTaskmanWindow GetTaskmanWindowFunc = NULL;
@@ -29,6 +30,8 @@ CustomShell::CustomShell()
 
 LRESULT ProgmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 {
+	printf("progman window wndproc msg: %d\n", msg);
+
 	if (msg == WM_CREATE)
 	{
 		if (FAILED(SetShellWindowFunc(hwnd)))
@@ -52,6 +55,16 @@ LRESULT ProgmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 			printf("Failed to create thread reference");
 		}
 	}
+	else if (msg == WM_DESTROY)
+	{
+		if (GetShellWindow() == hwnd)
+		{
+			RemovePropW(hwnd, L"AllowConsentToStealFocus");
+			RemovePropW(hwnd, L"NonRudeHWND");
+			SetShellWindowFunc(0);
+			WTSUnRegisterSessionNotification(hwnd);
+		}
+	}
 	else if (msg == WM_SIZE)
 	{
 		ShowWindow(hwnd, 5);
@@ -66,9 +79,13 @@ LRESULT ProgmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		RECT Rect;
 		HDC dc = BeginPaint(hwnd, &Paint);
 		GetClientRect(hwnd, &Rect);
-		FillRect(dc, &Rect, CreateSolidBrush(RGB(0, 255, 0)));
+		FillRect(dc, &Rect, CreateSolidBrush(RGB(0, 36, 0)));
 		EndPaint(hwnd, &Paint);
 		return 0;
+	}
+	else if (msg == WM_TIMER)
+	{
+		printf("timer!\n");
 	}
 	return DefWindowProc(hwnd, msg, w, l);
 }
@@ -86,7 +103,10 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		{
 			printf("failed to register taskman window\n");
 		}
-		RegisterShellHookWindow(hwnd);
+		if (!RegisterShellHookWindow(hwnd))
+		{
+			printf("register shellhook window failed\n");
+		}
 
 	}
 	else if (msg == WM_DESTROY)
@@ -113,6 +133,7 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 			}
 			else if ((UINT)w == 0x32)
 			{
+				printf("not handling this\n");
 				handle = FALSE;
 			}
 			if (handle)
@@ -132,11 +153,14 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		CLSIDFromString(L"{914d9b3a-5e53-4e14-bbba-46062acb35a4}", &SID_Unknown);
 
 		IServiceProvider* ImmersiveShell;
-		if (CoCreateInstance(guidImmersiveShell, 0, 0x404u, IID_IServiceProvider, (LPVOID*) &ImmersiveShell) >= 0)
+		if (CoCreateInstance(guidImmersiveShell, 0, 0x404u, IID_IServiceProvider, (LPVOID*)&ImmersiveShell) >= 0)
 		{
 			printf("created COM immersive shell thingy\n");
 
-			ImmersiveShell->QueryService(SID_ImmersiveShellHookService, SID_Unknown, (void**)&ShellHookService);
+			if (FAILED(ImmersiveShell->QueryService(SID_ImmersiveShellHookService, SID_Unknown, (void**)&ShellHookService)))
+			{
+				printf("failed to get service instance of SID_ImmersiveShellHookService\n");
+			}
 		}
 		else
 		{
@@ -148,9 +172,10 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 
 LRESULT TrayWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 {
+	printf("tray window wndproc msg: %d\n", msg);
 	if (msg == 736)
 	{
-		printf("the message\n");
+		printf("the message\n\n");
 	}
 	return DefWindowProc(hwnd, msg, w, l);
 }
@@ -288,9 +313,8 @@ HRESULT CustomShell::Run()
 		printf("failed to register progman class %d", GetLastError());
 		return -1;
 	}
-	
+
 	auto Progman = CreateWindowExW(128, L"Progman", TEXT("Program Manager"), 0x82000000, GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN), GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN), 0, 0, progmanclass.hInstance, 0);
-	ShowWindow(Progman, SW_SHOW);
 
 
 	// create taskman class (handles taskbar buttons)
@@ -355,6 +379,9 @@ HRESULT CustomShell::Run()
 		system("pause");
 		return hr;
 	}
+
+
+
 	hr = controller->Start();
 
 
@@ -375,13 +402,12 @@ HRESULT CustomShell::Run()
 		HANDLE StartEvent = OpenEvent(2, FALSE, TEXT("Local\\ShellStartupEvent"));
 		if (!StartEvent)
 		{
-			printf("Failed to open start event: %d\n",GetLastError());
+			printf("Failed to open start event: %d\n", GetLastError());
 		}
 		if (!SetEvent(StartEvent))
 		{
 			printf("Failed to set start event: %d\n", GetLastError());
 		}
-
 		//create the tray window
 		printf("create tray\n");
 		WNDCLASSEX trayclass = {};
@@ -405,6 +431,7 @@ HRESULT CustomShell::Run()
 			return -1;
 		}
 		auto tray = CreateWindowExW(384, L"Shell_TrayWnd", NULL, 0x82000000, 0, 0, 0, 0, 0, 0, 0, 0);
+
 
 		MSG msg = { };
 		while (TRUE)
