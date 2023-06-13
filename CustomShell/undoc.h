@@ -19,14 +19,14 @@ typedef BOOL(WINAPI* AudioHIDProcessAppCommand)(UINT appCommand);
 
 interface IImmersiveShellController : IUnknown
 {
-	virtual int Start();
-	virtual int Stop(void* unknown);
-	virtual int SetCreationBehavior(void* structure);
+	virtual HRESULT Start();
+	virtual HRESULT Stop(void* unknown);
+	virtual HRESULT SetCreationBehavior(void* structure);
 
 };
 interface IImmersiveShellBuilder : IUnknown
 {
-	virtual int CreateImmersiveShellController(IImmersiveShellController** other);
+	virtual HRESULT CreateImmersiveShellController(IImmersiveShellController** other);
 };
 
 interface IImmersiveShellHookService : IUnknown
@@ -48,4 +48,21 @@ interface IImmersiveShellHookService : IUnknown
 	virtual HRESULT UpdateWindowApplicationId(HWND hwnd, LPCWSTR pszAppID);
 	virtual HRESULT HandleWindowReplacement(HWND hwndOld, HWND hwndNew); 
 	virtual BOOL IsExecutionOnSerializedThread();
+};
+
+interface IImmersiveWindowMessageService : IUnknown
+{
+	virtual HRESULT Register(UINT msg, void* pNotification, UINT* pdwCookie);
+	virtual HRESULT Unregister(UINT dwCookie);
+	virtual HRESULT SendMessageW(UINT nsg, WPARAM wParam, LPARAM lParam);
+	virtual HRESULT PostMessageW(UINT nsg, WPARAM wParam, LPARAM lParam);
+	virtual HRESULT RequestHotkeys(); //todo: args
+	virtual HRESULT UnrequestHotkeys(UINT dwCookie);
+	virtual HRESULT RequestWTSSessionNotification(void* pNotification, unsigned int* pdwCookie);
+	virtual HRESULT UnrequestWTSSessionNotification(UINT dwCookie);
+	virtual HRESULT RequestPowerSettingNotification(const GUID* pPowerSettingGuid, void* pNotification, UINT* pdwCookie);
+	virtual HRESULT UnrequestPowerSettingNotification(UINT pdwCookie);
+	virtual HRESULT RequestPointerDeviceNotification(void* pNotification, int notificationType, UINT* pdwCookie);
+	virtual HRESULT UnrequestPointerDeviceNotification(UINT dwCookie);
+	virtual HRESULT RegisterDwmIconicThumbnailWindow();
 };

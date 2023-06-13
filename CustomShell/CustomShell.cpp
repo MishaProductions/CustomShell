@@ -66,7 +66,7 @@ LRESULT ProgmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		RECT Rect;
 		HDC dc = BeginPaint(hwnd, &Paint);
 		GetClientRect(hwnd, &Rect);
-		FillRect(dc, &Rect, CreateSolidBrush(RGB(0, 25, 0)));
+		FillRect(dc, &Rect, CreateSolidBrush(RGB(0, 255, 0)));
 		EndPaint(hwnd, &Paint);
 		return 0;
 	}
@@ -77,16 +77,17 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 {
 	if (msg == WM_CREATE)
 	{
-		if (!SetTaskmanWindowFunc(hwnd))
-		{
-			printf("failed to register taskman window\n");
-		}
 		shellhook = RegisterWindowMessageW(L"SHELLHOOK");
 		if (!shellhook)
 		{
 			printf("failed to register shellhook\n");
 		}
+		if (!SetTaskmanWindowFunc(hwnd))
+		{
+			printf("failed to register taskman window\n");
+		}
 		RegisterShellHookWindow(hwnd);
+
 	}
 	else if (msg == WM_DESTROY)
 	{
@@ -95,7 +96,6 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 			SetTaskmanWindowFunc(NULL);
 		}
 		DeregisterShellHookWindow(hwnd);
-		ShellHookService = NULL;
 	}
 	else
 	{
@@ -136,11 +136,7 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 		{
 			printf("created COM immersive shell thingy\n");
 
-			if (FAILED(ImmersiveShell->QueryService(SID_ImmersiveShellHookService, SID_Unknown, (void**)&ShellHookService)))
-			{
-				printf("failed to create service\n");
-			}
-			ImmersiveShell->Release();
+			ImmersiveShell->QueryService(SID_ImmersiveShellHookService, SID_Unknown, (void**)&ShellHookService);
 		}
 		else
 		{
@@ -152,7 +148,10 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 
 LRESULT TrayWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 {
-
+	if (msg == 736)
+	{
+		printf("the message\n");
+	}
 	return DefWindowProc(hwnd, msg, w, l);
 }
 
