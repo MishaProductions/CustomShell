@@ -23,11 +23,6 @@ int MainHook(
 		printf("Failed to initialize COM\n");
 		return -1;
 	}
-	if (FAILED(CoInitializeEx(NULL, 2)))
-	{
-		printf("Failed to initialize COM\n");
-		return -1;
-	}
 	printf("Starting it\n");
 
 	//create the shell object
