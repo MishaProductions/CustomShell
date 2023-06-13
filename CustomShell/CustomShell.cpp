@@ -30,8 +30,6 @@ CustomShell::CustomShell()
 
 LRESULT ProgmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 {
-	printf("progman window wndproc msg: %d\n", msg);
-
 	if (msg == WM_CREATE)
 	{
 		if (FAILED(SetShellWindowFunc(hwnd)))
@@ -172,11 +170,6 @@ LRESULT TaskmanWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 
 LRESULT TrayWndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l)
 {
-	printf("tray window wndproc msg: %d\n", msg);
-	if (msg == 736)
-	{
-		printf("the message\n\n");
-	}
 	return DefWindowProc(hwnd, msg, w, l);
 }
 
