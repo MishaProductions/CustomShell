@@ -11,7 +11,7 @@ namespace CSShellManaged
         static uint ShellHook = 0;
         static Guid SID_ImmersiveShellHookService = new Guid("4624bd39-5fc3-44a8-a809-163a836e9031");
         static Guid ImmersiveShellHookServiceInterface = new Guid("914d9b3a-5e53-4e14-bbba-46062acb35a4");
-        static IImmersiveShellHookService HookService;
+        static IImmersiveShellHookService? HookService;
         public static int Main(IntPtr args, int sizeBytes)
         {
             try
@@ -19,6 +19,8 @@ namespace CSShellManaged
                 Console.WriteLine("Hello from .NET");
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.EnableVisualStyles();
+
+                DoExplorerInit();
 
                 //create the program manager
                 var progmanclass = WNDCLASSEX.Build();
@@ -69,6 +71,30 @@ namespace CSShellManaged
                     Console.WriteLine("!!!FAILED TO START IMMERSIVE SHELL!!!");
                 }
 
+
+                //create the program manager
+                var shelltraywndclass = WNDCLASSEX.Build();
+                shelltraywndclass.lpfnWndProc = Marshal.GetFunctionPointerForDelegate((Wndproc)TrayWndproc);
+                shelltraywndclass.style = 8;
+                shelltraywndclass.hInstance = GetModuleHandle(null);
+                shelltraywndclass.lpszClassName = "Shell_TrayWnd";
+                shelltraywndclass.cbWndExtra = 8;
+                shelltraywndclass.cbClsExtra = 0;
+                shelltraywndclass.hbrBackground = new nint(2);
+                shelltraywndclass.hCursor = LoadCursor(IntPtr.Zero, IDC_ARROW);
+
+                if (RegisterClassExW(ref shelltraywndclass) == 0)
+                {
+                    Console.WriteLine("[traywnd] registerclassex failure: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
+                }
+                nint handle;
+                if ((handle = CreateWindowEx(128, "Shell_TrayWnd", null, 0x82000000, 0, 0, 0, 0, 0, 0, shelltraywndclass.hInstance, 0)) == 0)
+                {
+                    Console.WriteLine("[traywnd] createwindowex failure: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
+                }
+
+                ShowWindow(handle, ShowWindowCommands.Show);
+
                 Application.Run();
                 return 0;
             }
@@ -77,6 +103,11 @@ namespace CSShellManaged
                 Console.WriteLine("exception: " + ex.ToString());
                 return -1;
             }
+        }
+
+        private static nint TrayWndproc(nint hwnd, uint msg, nint wParam, nint lParam)
+        {
+            return DefWindowProc(hwnd, msg, wParam, lParam);
         }
 
         public static IntPtr ProgmanWndproc(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam)
@@ -104,6 +135,7 @@ namespace CSShellManaged
                 {
                     Console.WriteLine("SHCreateThreadRef failed");
                 }
+                UnregisterHotKey(0, 11);
             }
             else if (msg == WM_DESTROY)
             {
@@ -165,7 +197,7 @@ namespace CSShellManaged
                 if (HookService != null)
                 {
                     bool handle = true;
-                    if(wParam == 12)
+                    if (wParam == 12)
                     {
                         Console.WriteLine("set window");
                         HookService.SetTargetWindowForSerialization(lParam);
@@ -192,65 +224,11 @@ namespace CSShellManaged
                         HookService = (IImmersiveShellHookService)shellhooksrv;
                     }
                 }
-                
+
 
                 return 0;
             }
             return 0;
         }
-    }
-    [ComImport]
-    [Guid("914d9b3a-5e53-4e14-bbba-46062acb35a4")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    public interface IImmersiveShellHookService
-    {
-        int Register(); //TODO args
-        int Unregister(uint cookie);
-        int PostShellHookMessage(IntPtr wparam, IntPtr lparam);
-        int SetTargetWindowForSerialization(IntPtr hwnd);
-        int PostShellHookMessageWithSerialization();//todo: args
-        int UpdateWindowApplicationId(IntPtr hwnd, string pszAppid);
-        int HandleWindowReplacement(IntPtr hwndOld, IntPtr hwndNew);
-        bool IsExecutionOnSerializedThread();
-    }
-    [ComImport]
-    [Guid("6d5140c1-7436-11ce-8034-00aa006009fa")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    public interface IServiceProvider
-    {
-        int QueryService(ref Guid guidService, ref Guid riid,
-                   [MarshalAs(UnmanagedType.Interface)]  out object ppvObject);
-    }
-    [ComImport]
-    [Guid("c2f03a33-21f5-47fa-b4bb-156362a2f239")]
-    [ClassInterface(ClassInterfaceType.None)]
-    public class CImmersiveShell
-    {
-
-    }
-
-    [ComImport]
-    [Guid("d6948331-eaf5-4365-86ac-d8d1d03b4600")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    public interface IImmersiveShellController
-    {
-        public int Start();
-        public int Stop(IntPtr arg);
-        public int SetCreationBehavior(IntPtr arg);
-    }
-
-    [ComImport]
-    [Guid("1c56b3e4-e6ea-4ced-8a74-73b72c6bd435")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    public interface IImmersiveShellBuilder
-    {
-        int CreateImmersiveShellController(out IImmersiveShellController controller);
-    }
-    [ComImport]
-    [Guid("c71c41f1-ddad-42dc-a8fc-f5bfc61df957")]
-    [ClassInterface(ClassInterfaceType.None)]
-    public class CImmersiveShellBuilder
-    {
-
     }
 }

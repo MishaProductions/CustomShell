@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Interop;
 
 namespace CSShellManaged
 {
@@ -20,6 +23,7 @@ namespace CSShellManaged
         public const int WM_SIZE = 5;
         public const int WM_CLOSE = 0x10;
         public const int WM_PAINT = 0xF;
+        public const int WM_QUIT = 0x0012;
         public const int WM_TIMER = 0x0113;
         public const int WM_HOTKEY = 0x0312;
         public const int
@@ -51,7 +55,7 @@ namespace CSShellManaged
         public static extern IntPtr CreateWindowEx(uint dwExStyle, string lpClassName,
    string? lpWindowName, uint dwStyle, int x, int y, int nWidth, int nHeight,
    IntPtr hWndParent, IntPtr hMenu, IntPtr hInstance, IntPtr lpParam);
-        [DllImport("user32.dll",SetLastError = true)]
+        [DllImport("user32.dll", SetLastError = true)]
         public static extern int GetSystemMetrics(int index);
 
         [DllImport("user32.dll")]
@@ -82,7 +86,7 @@ namespace CSShellManaged
         [DllImport("user32.dll")]
         public static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIConName);
 
-     
+
 
         [DllImport("user32.dll")]
         public static extern MessageBoxResult MessageBox(IntPtr hWnd, string text, string caption, int options);
@@ -118,6 +122,115 @@ namespace CSShellManaged
         public static extern bool RegisterShellHookWindow(IntPtr hWnd);
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool DeregisterShellHookWindow(IntPtr hWnd);
+        [DllImport("shell32.dll", SetLastError = true)]
+        static extern void SetCurrentProcessExplicitAppUserModelID([MarshalAs(UnmanagedType.LPWStr)] string AppID);
+        [DllImport("kernel32.dll")]
+        static extern ErrorModes SetErrorMode(ErrorModes uMode);
+        [Flags]
+        public enum ErrorModes : uint
+        {
+            SYSTEM_DEFAULT = 0x0,
+            SEM_FAILCRITICALERRORS = 0x0001,
+            SEM_NOALIGNMENTFAULTEXCEPT = 0x0004,
+            SEM_NOGPFAULTERRORBOX = 0x0002,
+            SEM_NOOPENFILEERRORBOX = 0x8000
+        }
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool SetPriorityClass(IntPtr handle, PriorityClass priorityClass);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr GetCurrentProcess();
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool EnableMouseInPointer([MarshalAs(UnmanagedType.Bool)] bool fEnable);
+        public enum PriorityClass : uint
+        {
+            ABOVE_NORMAL_PRIORITY_CLASS = 0x8000,
+            BELOW_NORMAL_PRIORITY_CLASS = 0x4000,
+            HIGH_PRIORITY_CLASS = 0x80,
+            IDLE_PRIORITY_CLASS = 0x40,
+            NORMAL_PRIORITY_CLASS = 0x20,
+            PROCESS_MODE_BACKGROUND_BEGIN = 0x100000,// 'Windows Vista/2008 and higher
+            PROCESS_MODE_BACKGROUND_END = 0x200000,//   'Windows Vista/2008 and higher
+            REALTIME_PRIORITY_CLASS = 0x100
+        }
+        [DllImport("shell32.dll", EntryPoint = "#899")]
+        public static extern bool SetExplorerServerMode(int mode);
+        [DllImport("shell32.dll", EntryPoint = "#188")]
+        public static extern bool ShellDDEInit(bool init);
+        [DllImport("kernel32.dll")]
+        public static extern bool SetProcessShutdownParameters(uint level, uint flags);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool PeekMessage(out NativeMessage lpMsg, IntPtr hWnd, uint wMsgFilterMin,
+   uint wMsgFilterMax, uint wRemoveMsg);
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+        [DllImport("advapi32.dll", SetLastError = true)]
+        static extern bool ConvertStringSecurityDescriptorToSecurityDescriptor(
+  string StringSecurityDescriptor,
+  uint StringSDRevision,
+ out IntPtr SecurityDescriptor,
+  ref ulong SecurityDescriptorSize
+);
+        [DllImport("advapi32.dll", SetLastError = true)]
+        public static extern bool MakeAbsoluteSD(ref SECURITY_DESCRIPTOR pSelfRelativeSecurityDescriptor, nint pAbsoluteSecurityDescriptor, ref uint lpdwAbsoluteSecurityDescriptorSize,
+            IntPtr pDacl, ref uint lpdwDaclSize, IntPtr pSacl, ref uint lpdwSaclSize, IntPtr pOwner, ref uint lpdwOwnerSize, IntPtr pPrimaryGroup, ref uint lpdwPrimaryGroupSize);
+        private static bool ConvertSecurityDescriptor(SECURITY_DESCRIPTOR pSelfRelSD, ref SECURITY_DESCRIPTOR ppAbsoluteSD)
+        {
+            uint dwAbsoluteSDSize = 0;
+            uint dwDaclSize = 0;
+            uint dwSaclSize = 0;
+            uint dwOwnerSize = 0;
+            uint dwPrimaryGroupSize = 0;
+            if (!MakeAbsoluteSD(ref pSelfRelSD, 0, ref dwAbsoluteSDSize, 0, ref dwDaclSize, 0, ref dwSaclSize, 0, ref dwOwnerSize, 0, ref dwPrimaryGroupSize))
+            {
+                Console.WriteLine("MakeAbsoluteSD failed with: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
+            }
+
+            return false;
+        }
+
+
+
+        internal static void DoExplorerInit()
+        {
+            SetCurrentProcessExplicitAppUserModelID("Microsoft.Windows.Explorer");
+            SetErrorMode((ErrorModes)((int)ErrorModes.SEM_FAILCRITICALERRORS | 0x4000));
+            SetPriorityClass(GetCurrentProcess(), PriorityClass.HIGH_PRIORITY_CLASS);
+            EnableMouseInPointer(false);
+            // Create Explorer regkey (actually needed when you create the profile for the first time and log in)
+            SetExplorerServerMode(3);
+            SetPriorityClass(GetCurrentProcess(), PriorityClass.NORMAL_PRIORITY_CLASS);
+            ShellDDEInit(true);
+            SetProcessShutdownParameters(0x4FF, 1);//SHUTDOWN_NORETRY
+
+            NativeMessage msg;
+            PeekMessage(out msg, 0, WM_QUIT, WM_QUIT, 0); // fixes a bug
+
+            var cache = (IStartMenuItemsCache)new CStartMenuItemsCache();
+            cache.RegisterForNotifications();
+        }
+    }
+    [StructLayoutAttribute(LayoutKind.Sequential)]
+    public struct SECURITY_DESCRIPTOR
+    {
+        public byte revision;
+        public byte size;
+        public short control;
+        public IntPtr owner;
+        public IntPtr group;
+        public IntPtr sacl;
+        public IntPtr dacl;
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NativeMessage
+    {
+        public IntPtr handle;
+        public uint msg;
+        public IntPtr wParam;
+        public IntPtr lParam;
+        public uint time;
+        public System.Drawing.Point p;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
@@ -224,18 +337,18 @@ namespace CSShellManaged
             return r.Left == Left && r.Top == Top && r.Right == Right && r.Bottom == Bottom;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is RECT)
                 return Equals((RECT)obj);
-            else if (obj is System.Drawing.Rectangle)
-                return Equals(new RECT((System.Drawing.Rectangle)obj));
+            else if (obj is Rectangle)
+                return Equals(new RECT((Rectangle)obj));
             return false;
         }
 
         public override int GetHashCode()
         {
-            return ((System.Drawing.Rectangle)this).GetHashCode();
+            return ((Rectangle)this).GetHashCode();
         }
 
         public override string ToString()
@@ -326,5 +439,4 @@ namespace CSShellManaged
         /// </summary>  
         ForceMinimize = 11
     }
-
 }

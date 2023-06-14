@@ -5,5 +5,8 @@
     <Compile Update="Desktop.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Update="TrayThing.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
   </ItemGroup>
 </Project>

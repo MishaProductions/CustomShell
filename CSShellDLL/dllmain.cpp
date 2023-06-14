@@ -5,6 +5,10 @@
 #include <string.h>
 #include <assert.h>
 #include <iostream>
+#include <sddl.h>
+
+#pragma comment(lib, "shlwapi.lib")
+#define IS_FLAG_SET(dw,fl)  (((dw) & (fl)) == fl)
 using namespace std;
 using string_t = std::basic_string<char_t>;
 
@@ -13,6 +17,132 @@ using string_t = std::basic_string<char_t>;
 /********************************************************************************************
  * Function used to load and activate .NET Core
  ********************************************************************************************/
+
+
+HRESULT ConvertSecurityDescriptor(
+	PSECURITY_DESCRIPTOR pSelfRelSD,
+	PSECURITY_DESCRIPTOR* ppAbsoluteSD)
+{
+	BOOL bResult;
+	PACL pDacl = nullptr;
+	PACL pSacl = nullptr;
+	PSID pOwner = nullptr;
+	PSID pPrimaryGroup = nullptr;
+	DWORD dwAbsoluteSDSize = 0;
+	DWORD dwDaclSize = 0;
+	DWORD dwSaclSize = 0;
+	DWORD dwOwnerSize = 0;
+	DWORD dwPrimaryGroupSize = 0;
+	size_t sizeNeeded = 0;
+	*ppAbsoluteSD = nullptr;
+
+	if (!pSelfRelSD ||
+		!IS_FLAG_SET(((SECURITY_DESCRIPTOR*)(pSelfRelSD))->Control, SE_SELF_RELATIVE))
+	{
+		return E_INVALIDARG;
+	}
+
+	MakeAbsoluteSD(
+		pSelfRelSD,
+		nullptr,
+		&dwAbsoluteSDSize,
+		nullptr,
+		&dwDaclSize,
+		nullptr,
+		&dwSaclSize,
+		nullptr,
+		&dwOwnerSize,
+		nullptr,
+		&dwPrimaryGroupSize
+	);
+
+	sizeNeeded =
+		dwAbsoluteSDSize +
+		dwDaclSize +
+		dwSaclSize +
+		dwOwnerSize +
+		dwPrimaryGroupSize;
+	*ppAbsoluteSD = (PSECURITY_DESCRIPTOR)LocalAlloc(LMEM_FIXED, sizeNeeded);
+
+	if (!*ppAbsoluteSD)
+		return E_OUTOFMEMORY;
+
+	BYTE* position = (BYTE*)(*ppAbsoluteSD);
+	pDacl = reinterpret_cast<PACL>(position += dwAbsoluteSDSize);
+	pSacl = reinterpret_cast<PACL>(position += dwDaclSize);
+	pOwner = reinterpret_cast<PSID>(position += dwSaclSize);
+	pPrimaryGroup = reinterpret_cast<PSID>(position += dwOwnerSize);
+
+	bResult = MakeAbsoluteSD(
+		pSelfRelSD,
+		*ppAbsoluteSD,
+		&dwAbsoluteSDSize,
+		pDacl,
+		&dwDaclSize,
+		pSacl,
+		&dwSaclSize,
+		pOwner,
+		&dwOwnerSize,
+		pPrimaryGroup,
+		&dwPrimaryGroupSize
+	);
+
+	if (!bResult)
+	{
+		LocalFree(*ppAbsoluteSD);
+		return HRESULT_FROM_WIN32(GetLastError());
+	}
+
+	return S_OK;
+}
+
+
+BOOL InitSecurityForAppContainer()
+{
+	ULONG selfRelativeSecurityDescriptorSize{};
+	PSECURITY_DESCRIPTOR pSelfRelativeSecurityDescriptor{};
+	PSECURITY_DESCRIPTOR absoluteSecurityDescriptor{};
+
+	if (ConvertStringSecurityDescriptorToSecurityDescriptor(
+		L"O:BAG:BAD:(A;;0x7;;;PS)(A;;0x3;;;SY)(A;;0x7;;;BA)(A;;0x3;;;AC)(A;;0x3;;;S-1-5-80-21560277-3893537710-1672964824-3682772274-2051710322)",
+		SDDL_REVISION_1,
+		&pSelfRelativeSecurityDescriptor,
+		&selfRelativeSecurityDescriptorSize))
+	{
+		if (ConvertSecurityDescriptor(pSelfRelativeSecurityDescriptor, &absoluteSecurityDescriptor) == S_OK)
+		{
+			if (CoInitializeSecurity(
+				absoluteSecurityDescriptor,
+				-1,
+				NULL,
+				NULL,
+				RPC_C_AUTHN_LEVEL_DEFAULT,
+				RPC_C_IMP_LEVEL_IDENTIFY,
+				NULL,
+				EOAC_APPID,
+				NULL) != S_OK)
+			{
+				auto lastErr = GetLastError();
+			}
+		}
+		else
+		{
+			auto lastErr = GetLastError();
+		}
+	}
+	else
+	{
+		auto lastErr = GetLastError();
+	}
+
+	if (pSelfRelativeSecurityDescriptor)
+		LocalFree(pSelfRelativeSecurityDescriptor);
+
+	if (absoluteSecurityDescriptor)
+		LocalFree(absoluteSecurityDescriptor);
+
+	return TRUE;
+}
 
 namespace
 {
@@ -101,6 +231,11 @@ int MainHook(
 		printf("Failed to initialize COM\n");
 		return -1;
 	}
+
+	if (!InitSecurityForAppContainer())
+	{
+		printf("failed to init security for app container\n");
+	}
 	printf("Starting it\n");
 	// Get the current executable's directory
    // This sample assumes the managed assembly to load and its runtime configuration file are next to the host
@@ -123,7 +258,19 @@ int MainHook(
 	//
 	// STEP 2: Initialize and start the .NET Core runtime
 	//
-	const string_t root_path = L"C:\\Users\\Misha\\OneDrive\\_RE\\CPP\\Win10\\customshellhost\\CustomShell\\x64\\Debug\\";
+	string_t root_path;
+	wchar_t pBuf[256];
+	size_t len = sizeof(pBuf);
+	int bytes = GetModuleFileNameW(NULL, pBuf, len);
+	string_t root_file = pBuf;
+
+	const size_t last_slash_idx = root_file.rfind('\\');
+	if (std::string::npos != last_slash_idx)
+	{
+		root_path = root_file.substr(0, last_slash_idx);
+	}
+	root_path = root_path + L"\\";
+
 	const string_t config_path = root_path +L"CSShellManaged.runtimeconfig.json";
 	printf("config: %ls\n", config_path.c_str());
 	load_assembly_and_get_function_pointer_fn load_assembly_and_get_function_pointer = nullptr;

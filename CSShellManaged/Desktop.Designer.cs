@@ -31,6 +31,8 @@
             components = new System.ComponentModel.Container();
             label1 = new Label();
             contextMenuStrip1 = new ContextMenuStrip(components);
+            refreshToolStripMenuItem = new ToolStripMenuItem();
+            contextMenuStrip1.SuspendLayout();
             SuspendLayout();
             // 
             // label1
@@ -38,15 +40,22 @@
             label1.AutoSize = true;
             label1.Location = new Point(26, 28);
             label1.Name = "label1";
-            label1.Size = new Size(68, 30);
+            label1.Size = new Size(124, 30);
             label1.TabIndex = 0;
-            label1.Text = "label1";
+            label1.Text = "DESKTOP!!!!";
             // 
             // contextMenuStrip1
             // 
             contextMenuStrip1.ImageScalingSize = new Size(28, 28);
+            contextMenuStrip1.Items.AddRange(new ToolStripItem[] { refreshToolStripMenuItem });
             contextMenuStrip1.Name = "contextMenuStrip1";
-            contextMenuStrip1.Size = new Size(61, 4);
+            contextMenuStrip1.Size = new Size(156, 40);
+            // 
+            // refreshToolStripMenuItem
+            // 
+            refreshToolStripMenuItem.Name = "refreshToolStripMenuItem";
+            refreshToolStripMenuItem.Size = new Size(155, 36);
+            refreshToolStripMenuItem.Text = "Refresh";
             // 
             // Desktop
             // 
@@ -55,6 +64,7 @@
             Controls.Add(label1);
             Name = "Desktop";
             Size = new Size(500, 500);
+            contextMenuStrip1.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -63,5 +73,6 @@
 
         private Label label1;
         private ContextMenuStrip contextMenuStrip1;
+        private ToolStripMenuItem refreshToolStripMenuItem;
     }
 }
