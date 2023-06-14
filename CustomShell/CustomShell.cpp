@@ -397,9 +397,12 @@ HRESULT CustomShell::Run()
 		{
 			printf("Failed to open start event: %d\n", GetLastError());
 		}
-		if (!SetEvent(StartEvent))
+		else
 		{
-			printf("Failed to set start event: %d\n", GetLastError());
+			if (!SetEvent(StartEvent))
+			{
+				printf("Failed to set start event: %d\n", GetLastError());
+			}
 		}
 		//create the tray window
 		printf("create tray\n");

@@ -4,3 +4,5 @@ packages/
 CustomShell/x64
 imrsivAdder/x64
 KMDF Driver1/x64
+CSShellManaged/bin
+CSShellManaged/obj

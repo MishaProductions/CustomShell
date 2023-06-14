@@ -24,6 +24,7 @@
     <ProjectGuid>{01476ee6-c509-40dc-a42f-1c3a84604d63}</ProjectGuid>
     <RootNamespace>CustomShell</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>CustomShellTest</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -71,7 +72,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>rmclient</TargetName>
+    <TargetName>rmclient_old</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -144,8 +145,8 @@
     <ClCompile Include="CustomShell.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="resource.h" />
     <ClInclude Include="CustomShell.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="undoc.h" />
   </ItemGroup>
   <ItemGroup>
