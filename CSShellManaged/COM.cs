@@ -1,4 +1,6 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace CSShellManaged
 {
@@ -77,6 +79,128 @@ namespace CSShellManaged
     [ComImport]
     [Guid("660b90c8-73a9-4b58-8cae-355b7f55341b")]
     public class CStartMenuItemsCache
+    {
+    }
+
+    public enum IMMERSIVE_MONITOR_FILTER_FLAGS
+    {
+        IMMERSIVE_MONITOR_FILTER_FLAGS_NONE = 0x0,
+        IMMERSIVE_MONITOR_FILTER_FLAGS_DISABLE_TRAY = 0x1,
+    }
+
+    [ComImport]
+    [Guid("880b26f8-9197-43d0-8045-8702d0d72000")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IImmersiveMonitor
+    {
+        public int GetIdentity(out uint pIdentity);
+        public int Append(object unknown);
+        public int GetHandle(IntPtr phMonitor);
+        public int IsConnected(out bool pfConnected);
+        public int IsPrimary(out bool pfPrimary);
+        public int GetTrustLevel(out uint level);
+        public int GetDisplayRect(out RECT prcDisplayRect);
+        public int GetOrientation(out uint pdwOrientation);
+        public int GetWorkArea(out RECT prcWorkArea);
+        public int IsEqual(IImmersiveMonitor pMonitor, out bool pfEqual);
+        public int GetTrustLevel2(out uint level);
+        public int GetEffectiveDpi(out uint dpiX, out uint dpiY);
+        public int GetFilterFlags(out IMMERSIVE_MONITOR_FILTER_FLAGS flags);
+    }
+    public enum IMMERSIVE_MONITOR_MOVE_DIRECTION
+    {
+        IMMD_PREVIOUS = 0,
+        IMMD_NEXT = 1
+    }
+    [ComImport]
+    [Guid("4d4c1e64-e410-4faa-bafa-59ca069bfec2")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IImmersiveMonitorManager
+    {
+        public int GetCount(out uint pcMonitors);
+        public int GetConnectedCount(out uint pcMonitors);
+        public int GetAt(out uint idxMonitor, out IImmersiveMonitor monitor);
+        public int GetFromHandle(IntPtr monitor, out IImmersiveMonitor monitor2);
+        public int GetFromIdentity(uint identity, out IImmersiveMonitor monitor);
+        public int GetImmersiveProxyMonitor(out IImmersiveMonitor monitor);
+        public int QueryService(IntPtr monit, ref Guid guidService, ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object service);
+        public int QueryServiceByIdentity(uint monit, ref Guid guidService, ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object service);
+        public int QueryServiceFromWindow(IntPtr hwnd, ref Guid guidService, ref Guid riid,[MarshalAs(UnmanagedType.IUnknown)] out object service);
+        public int QueryServiceFromPoint(IntPtr point, ref Guid guidService, ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object service);
+        public int GetNextImmersiveMonitor(IMMERSIVE_MONITOR_MOVE_DIRECTION direction, IImmersiveMonitor monitor, out IImmersiveMonitor monitorout);
+        public int GetMonitorArray(out object array);
+        public int SetFilter(object filter);
+    }
+    public enum IMMERSIVELAUNCHERSHOWMETHOD
+    {
+        ILSM_INVALID = 0x0,
+        ILSM_HSHELLTASKMAN = 0x1,
+        ILSM_IMMERSIVEBACKGROUND = 0x4,
+        ILSM_APPCLOSED = 0x6,
+        ILSM_STARTBUTTON = 0xB,
+        ILSM_RETAILDEMO_EDUCATIONAPP = 0xC,
+        ILSM_BACK = 0xD,
+        ILSM_SESSIONONUNLOCK = 0xE
+    }
+    public enum IMMERSIVELAUNCHERSHOWFLAGS
+    {
+        ILSF_NONE = 0x0,
+        ILSF_IGNORE_SET_FOREGROUND_ERROR = 0x4,
+    }
+    public enum IMMERSIVELAUNCHERDISMISSMETHOD
+    {
+        ILDM_INVALID = 0x0,
+        ILDM_HSHELLTASKMAN = 0x1,
+        ILDM_STARTCHARM = 0x2,
+        ILDM_BACKGESTURE = 0x3,
+        ILDM_ESCAPEKEY = 0x4,
+        ILDM_SHOWDESKTOP = 0x5,
+        ILDM_STARTTIP = 0x6,
+        ILDM_GENERIC_NONANIMATING = 0x7,
+    }
+    [ComImport]
+    [Guid("d8d60399-a0f1-f987-5551-321fd1b49864")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IImmersiveLauncher
+    {
+        public int ShowStartView(IMMERSIVELAUNCHERSHOWMETHOD showMethod, IMMERSIVELAUNCHERSHOWFLAGS showFlags);
+        public int Dismiss(IMMERSIVELAUNCHERDISMISSMETHOD dismissMethod);
+        public int Dismiss2(IMMERSIVELAUNCHERDISMISSMETHOD dismissMethod);
+        public int DismissSynchronouslyWithoutTransition();
+        public int IsVisible(out bool p0);
+        public int OnStartButtonPressed(IMMERSIVELAUNCHERSHOWMETHOD showMethod, IMMERSIVELAUNCHERDISMISSMETHOD dismissMethod);
+        public int SetForeground();
+        public int ConnectToMonitor(IImmersiveMonitor monitor);
+        public int GetMonitor(out IImmersiveMonitor monitor);
+        public int OnFirstSignAnimationFinished();
+        public int Prelaunch();
+    }
+
+    [ComImport]
+    [Guid("00000000-0000-0000-0000-000000000000")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public unsafe interface IDeskTray
+    {
+        //IDeskTray
+        public uint AppBarGetState();
+        public void GetTrayWindow(ref IntPtr tray);
+        public int SetDesktopWindow(IntPtr desktop);
+        public int SetVar(int a, ulong b);
+    }
+
+    [ComImport]
+    [Guid("c4de032a-d902-450a-bc43-d9df6d0fd48c")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IExplorerHostCreator
+    {
+        //IDeskTray
+        public int CreateHost(ref Guid guid);
+        public int RunHost();
+    }
+
+    [ComImport]
+    [Guid("ab0b37ec-56f6-4a0e-a8fd-7a8bf7c2da96")]
+    public class CExplorerHostCreator
     {
     }
 }

@@ -278,8 +278,8 @@ int MainHook(
 	assert(load_assembly_and_get_function_pointer != nullptr);
 
 	//
-  // STEP 3: Load managed assembly and get function pointer to a managed method
-  //
+    // STEP 3: Load managed assembly and get function pointer to a managed method
+    //
 	const string_t dotnetlib_path = root_path + L"CSShellManaged.dll";
 	const char_t* dotnet_type = L"CSShellManaged.Program, CSShellManaged";
 	const char_t* dotnet_type_method = L"Main";
@@ -299,20 +299,19 @@ int MainHook(
 		printf("error: %x", rc);
 	}
 	assert(rc == 0 && hello != nullptr && "Failure: load_assembly_and_get_function_pointer()");
-
 	//
    // STEP 4: Run managed code
    //
 	struct lib_args
 	{
-		const char_t* message;
+		int instance;
 		int number;
 	};
 	// <SnippetCallManaged>
 	lib_args args
 	{
-		L"from host!",
-		0
+		0,
+		1
 	};
 
 	hello(&args, sizeof(args));
@@ -364,28 +363,34 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 
 void HamCloseActivity()
 {
+	DebugBreak();
 	printf("STUB FUNCTION: HamCloseActivity\n");
 }
 
 
 void HamPopulateActivityProperties()
 {
+	DebugBreak();
 	printf("STUB FUNCTION: HamPopulateActivityProperties\n");
 }
 
 void HamCreateActivityForProcess()
 {
+	DebugBreak();
 	printf("STUB FUNCTION: HamCreateActivityForProcess\n");
 }
 void HamStartActivityAsync()
 {
+	DebugBreak();
 	printf("STUB FUNCTION: HamStartActivityAsync\n");
 }
 void HamConnectToServer()
 {
+	DebugBreak();
 	printf("STUB FUNCTION: HamConnectToServer\n");
 }
 void HamDisconnectFromServer()
 {
+	DebugBreak();
 	printf("STUB FUNCTION: HamDisconnectFromServer\n");
 }

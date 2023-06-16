@@ -5,8 +5,14 @@
     <Compile Update="Desktop.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Update="TrayThing.cs">
+    <Compile Update="ProgManWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="StartButton.cs">
       <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="TrayWindow.cs">
+      <SubType>Form</SubType>
     </Compile>
   </ItemGroup>
 </Project>

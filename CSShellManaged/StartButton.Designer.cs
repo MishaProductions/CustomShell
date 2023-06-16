@@ -1,6 +1,6 @@
 ﻿namespace CSShellManaged
 {
-    partial class TrayThing
+    partial class StartButton
     {
         /// <summary> 
         /// Required designer variable.
@@ -28,17 +28,32 @@
         /// </summary>
         private void InitializeComponent()
         {
+            button1 = new Button();
             SuspendLayout();
             // 
-            // TrayThing
+            // button1
+            // 
+            button1.Dock = DockStyle.Fill;
+            button1.Location = new Point(0, 0);
+            button1.Name = "button1";
+            button1.Size = new Size(146, 71);
+            button1.TabIndex = 0;
+            button1.Text = "START";
+            button1.UseVisualStyleBackColor = true;
+            button1.Click += button1_Click;
+            // 
+            // StartButton
             // 
             AutoScaleDimensions = new SizeF(12F, 30F);
             AutoScaleMode = AutoScaleMode.Font;
-            Name = "TrayThing";
-            Size = new Size(856, 76);
+            Controls.Add(button1);
+            Name = "StartButton";
+            Size = new Size(146, 71);
             ResumeLayout(false);
         }
 
         #endregion
+
+        private Button button1;
     }
 }

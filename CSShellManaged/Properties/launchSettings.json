@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CSShellManaged": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

@@ -10,9 +10,9 @@ using System.Windows.Forms;
 
 namespace CSShellManaged
 {
-    public partial class TrayThing : UserControl
+    public partial class ProgManWindow : Form
     {
-        public TrayThing()
+        public ProgManWindow()
         {
             InitializeComponent();
         }

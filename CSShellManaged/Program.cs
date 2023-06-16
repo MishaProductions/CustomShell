@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using PlayHooky;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using static CSShellManaged.Win32;
 
@@ -12,57 +13,107 @@ namespace CSShellManaged
         static Guid SID_ImmersiveShellHookService = new Guid("4624bd39-5fc3-44a8-a809-163a836e9031");
         static Guid ImmersiveShellHookServiceInterface = new Guid("914d9b3a-5e53-4e14-bbba-46062acb35a4");
         static IImmersiveShellHookService? HookService;
+        public static DeskTrayImpl desktop;
+        public static IntPtr Progmanhwnd;
         public static int Main(IntPtr args, int sizeBytes)
         {
             try
             {
+              
                 Console.WriteLine("Hello from .NET");
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.EnableVisualStyles();
 
                 DoExplorerInit();
 
-                //create the program manager
-                var progmanclass = WNDCLASSEX.Build();
-                progmanclass.lpfnWndProc = Marshal.GetFunctionPointerForDelegate((Wndproc)ProgmanWndproc);
-                progmanclass.style = 8;
-                progmanclass.hInstance = GetModuleHandle(null);
-                progmanclass.lpszClassName = "Progman";
-                progmanclass.cbWndExtra = 8;
-                progmanclass.cbClsExtra = 0;
-                progmanclass.hbrBackground = new nint(2);
-                progmanclass.hCursor = LoadCursor(IntPtr.Zero, IDC_ARROW);
+                if (SHCreateThreadRef(ref ProgManPCRef, out ProgManThreadRef) >= 0)
+                {
+                    if (SHSetThreadRef(ProgManThreadRef) < 0)
+                    {
+                        Console.WriteLine("SHSetThreadRef failed");
 
-                if (RegisterClassExW(ref progmanclass) == 0)
-                {
-                    Console.WriteLine("[progman] registerclassex failure: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
+                    }
+                    else
+                    {
+                        SetProcessReference(ProgManThreadRef);
+                    }
                 }
-                if (CreateWindowEx(128, "Progman", "Program Manager", 0x82000000, GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN), GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN), 0, 0, progmanclass.hInstance, 0) == 0)
+                else
                 {
-                    Console.WriteLine("[progman] createwindowex failure: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
+                    Console.WriteLine("SHCreateThreadRef failed");
                 }
 
-                // create taskman class (handles taskbar buttons)
-                //create the program manager
-                var taskmanclass = WNDCLASSEX.Build();
-                taskmanclass.lpfnWndProc = Marshal.GetFunctionPointerForDelegate((Wndproc)TaskmanWndproc);
-                taskmanclass.style = 8;
-                taskmanclass.hInstance = GetModuleHandle(null);
-                taskmanclass.lpszClassName = "TaskmanWndClass";
-                taskmanclass.cbWndExtra = 8;
-                taskmanclass.cbClsExtra = 0;
-                taskmanclass.hbrBackground = new nint(2);
-                taskmanclass.hCursor = LoadCursor(IntPtr.Zero, IDC_ARROW);
+                //We need to hook the NativeWindow.GetFullClassName() function as windows forms has a random class name
+                WindowClassHook.Install();
 
-                if (RegisterClassExW(ref taskmanclass) == 0)
-                {
-                    Console.WriteLine("[taskman] registerclassex failure: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
-                }
-                if (CreateWindowEx(128, "TaskmanWndClass", null, 0x82000000, GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN), GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN), 0, 0, progmanclass.hInstance, 0) == 0)
-                {
-                    Console.WriteLine("[taskman] createwindowex failure: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
-                }
+                //create tray
+                WindowClassHook.ClassName = "Shell_TrayWnd";
+                var tray = new Shell_TrayWnd();
+                tray.Show();
+                WindowClassHook.ClassName = "unknown";
 
+                //Create the desktop
+                desktop = new DeskTrayImpl(tray.Handle);
+                var ptr = Marshal.GetComInterfaceForObject(desktop, typeof(IDeskTray));
+                Progmanhwnd = ShCreateDesktop(ptr);
+                System.Windows.Forms.MessageBox.Show("Attach a debugger NOW");
+                if (Progmanhwnd == 0)
+                {
+                    throw new Win32Exception();
+                }   
+
+                //create taskman class (handles taskbar buttons)
+                CreateTaskman();
+
+                StartImmersiveShell();
+
+                StartExplorerHost();
+
+
+                PostMessageW(tray.Handle, 1424, 1, 0); //??
+
+                PostMessageW(Program.Progmanhwnd, 1116, 3, 0);
+                PostMessageW(Program.Progmanhwnd, 1116, 2, 0);
+                //SendMessageW(progman, 5, 0, 0);
+                //PostMessageW(progman, 1116, 0, 0); //_StuckTrayChange
+
+                //SendMessageW(progman, 1116, 3, 0);
+
+
+                ////some time later
+                //PostMessageW(progman, 1118, 0, 0x10002); //_StartDesktopApiSurface
+
+                //PostMessageW(progman, 1101, 0, 0);
+                //PostMessageW(progman, 1101, 0, 0);
+
+                //PostMessageW(progman, 1116, 3, 5); //_StartWaitForDesktopVisuals
+
+                //PostMessageW(progman, 1115, 0, 0x10000); //_StartDesktopFinalTasks
+                ShowWindow(Program.Progmanhwnd, ShowWindowCommands.Show);
+                SHDesktopMessageLoop(Progmanhwnd);
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("exception: " + ex.ToString());
+                Application.Run();
+                return -1;
+            }
+        }
+        private static void StartExplorerHost()
+        {
+            var host = (IExplorerHostCreator)new CExplorerHostCreator();
+            var desktopexplorerhost = new Guid("682159d9-c321-47ca-b3f1-30e36b2ec8b9");
+            if (host.CreateHost(ref desktopexplorerhost) != 0)
+            {
+                throw new Win32Exception();
+            }
+            //host.RunHost(); (doesn't seem to be called in explorer)
+        }
+        private static void StartImmersiveShell()
+        {
+            try
+            {
                 var builder = (IImmersiveShellBuilder)new CImmersiveShellBuilder();
                 builder.CreateImmersiveShellController(out IImmersiveShellController controller);
 
@@ -70,49 +121,57 @@ namespace CSShellManaged
                 {
                     Console.WriteLine("!!!FAILED TO START IMMERSIVE SHELL!!!");
                 }
-
-
-                //create the program manager
-                var shelltraywndclass = WNDCLASSEX.Build();
-                shelltraywndclass.lpfnWndProc = Marshal.GetFunctionPointerForDelegate((Wndproc)TrayWndproc);
-                shelltraywndclass.style = 8;
-                shelltraywndclass.hInstance = GetModuleHandle(null);
-                shelltraywndclass.lpszClassName = "Shell_TrayWnd";
-                shelltraywndclass.cbWndExtra = 8;
-                shelltraywndclass.cbClsExtra = 0;
-                shelltraywndclass.hbrBackground = new nint(2);
-                shelltraywndclass.hCursor = LoadCursor(IntPtr.Zero, IDC_ARROW);
-
-                if (RegisterClassExW(ref shelltraywndclass) == 0)
-                {
-                    Console.WriteLine("[traywnd] registerclassex failure: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
-                }
-                nint handle;
-                if ((handle = CreateWindowEx(128, "Shell_TrayWnd", null, 0x82000000, 0, 0, 0, 0, 0, 0, shelltraywndclass.hInstance, 0)) == 0)
-                {
-                    Console.WriteLine("[traywnd] createwindowex failure: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
-                }
-
-                ShowWindow(handle, ShowWindowCommands.Show);
-
-                Application.Run();
-                return 0;
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("exception: " + ex.ToString());
-                return -1;
-            }
+            catch { Console.WriteLine("!!!FAILED TO START IMMERSIVE SHELL!!!"); }
         }
-
-        private static nint TrayWndproc(nint hwnd, uint msg, nint wParam, nint lParam)
+        private static void CreateTaskman()
         {
-            return DefWindowProc(hwnd, msg, wParam, lParam);
-        }
+            var taskmanclass = WNDCLASSEX.Build();
+            taskmanclass.lpfnWndProc = Marshal.GetFunctionPointerForDelegate((Wndproc)TaskmanWndproc);
+            taskmanclass.style = 8;
+            taskmanclass.hInstance = GetModuleHandle(null);
+            taskmanclass.lpszClassName = "TaskmanWndClass";
+            taskmanclass.cbWndExtra = 8;
+            taskmanclass.cbClsExtra = 0;
+            taskmanclass.hbrBackground = new nint(2);
+            taskmanclass.hCursor = LoadCursor(IntPtr.Zero, IDC_ARROW);
 
+            if (RegisterClassExW(ref taskmanclass) == 0)
+            {
+                Console.WriteLine("[taskman] registerclassex failure: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
+            }
+            if (CreateWindowEx(128, "TaskmanWndClass", null, 0x82000000, GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN), GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN), 0, 0, taskmanclass.hInstance, 0) == 0)
+            {
+                Console.WriteLine("[taskman] createwindowex failure: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
+            }
+        }
+        private static void CreateProgMan()
+        {
+            //create the program manager
+            var progmanclass = WNDCLASSEX.Build();
+            progmanclass.lpfnWndProc = Marshal.GetFunctionPointerForDelegate((Wndproc)ProgmanWndproc);
+            progmanclass.style = 8;
+            progmanclass.hInstance = GetModuleHandle(null);
+            progmanclass.lpszClassName = "Progman";
+            progmanclass.cbWndExtra = 8;
+            progmanclass.cbClsExtra = 0;
+            progmanclass.hbrBackground = new nint(2);
+            progmanclass.hCursor = LoadCursor(IntPtr.Zero, IDC_ARROW);
+
+
+            if (RegisterClassExW(ref progmanclass) == 0)
+            {
+                Console.WriteLine("[progman] registerclassex failure: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
+            }
+            Progmanhwnd = CreateWindowEx(128, "Progman", "Program Manager", 0x82000000, GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN), GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN), 0, 0, progmanclass.hInstance, 0);
+            if (Progmanhwnd == 0)
+            {
+                Console.WriteLine("[progman] createwindowex failure: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
+            }
+        }
         public static IntPtr ProgmanWndproc(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
-            Console.WriteLine("[progman] msg");
+            Console.WriteLine("[progman] msg " + msg);
             if (msg == WM_CREATE)
             {
                 Console.WriteLine("[progman] created");
@@ -151,16 +210,16 @@ namespace CSShellManaged
             {
                 return -1;
             }
-            else if (msg == WM_PAINT)
-            {
-                PAINTSTRUCT Paint;
-                RECT Rect;
-                nint dc = BeginPaint(hwnd, out Paint);
-                GetClientRect(hwnd, out Rect);
-                FillRect(dc, ref Rect, CreateSolidBrush((uint)ColorTranslator.ToWin32(Color.Green)));
-                EndPaint(hwnd, ref Paint);
-                return 0;
-            }
+            //else if (msg == WM_PAINT)
+            //{
+            //    PAINTSTRUCT Paint;
+            //    RECT Rect;
+            //    nint dc = BeginPaint(hwnd, out Paint);
+            //    GetClientRect(hwnd, out Rect);
+            //    FillRect(dc, ref Rect, CreateSolidBrush((uint)ColorTranslator.ToWin32(Color.Green)));
+            //    EndPaint(hwnd, ref Paint);
+            //    return 0;
+            //}
             return DefWindowProc(hwnd, msg, wParam, lParam);
         }
         public static IntPtr TaskmanWndproc(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam)
@@ -214,15 +273,19 @@ namespace CSShellManaged
                 }
                 else
                 {
-                    var x = (IServiceProvider)new CImmersiveShell();
-                    if (x.QueryService(ref SID_ImmersiveShellHookService, ref ImmersiveShellHookServiceInterface, out object shellhooksrv) < 0)
+                    try
                     {
-                        Console.WriteLine("failed to get the immersive shell hook service");
+                        var x = (IServiceProvider)new CImmersiveShell();
+                        if (x.QueryService(ref SID_ImmersiveShellHookService, ref ImmersiveShellHookServiceInterface, out object shellhooksrv) < 0)
+                        {
+                            Console.WriteLine("failed to get the immersive shell hook service");
+                        }
+                        else
+                        {
+                            HookService = (IImmersiveShellHookService)shellhooksrv;
+                        }
                     }
-                    else
-                    {
-                        HookService = (IImmersiveShellHookService)shellhooksrv;
-                    }
+                    catch { }
                 }
 
 
