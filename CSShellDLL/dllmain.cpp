@@ -227,10 +227,7 @@ int MainHook(
 {
 	printf("Winmain hooked\n");
 
-	TCHAR wszRealDXGIPath[MAX_PATH];
-	GetSystemDirectoryW(wszRealDXGIPath, MAX_PATH);
-	wcscat_s(wszRealDXGIPath, MAX_PATH, L"\\dxgi.dll");
-	SetupDXGIImportFunctions(LoadLibraryW(wszRealDXGIPath));
+
 
 	if (FAILED(CoInitializeEx(NULL, 2)))
 	{
@@ -336,6 +333,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 	{
 		DisableThreadLibraryCalls(hModule);
 		AllocConsole();
+
+
+
 		freopen("CONIN$", "r", stdin);
 		freopen("CONOUT$", "w", stdout);
 		freopen("CONOUT$", "w", stderr);
@@ -366,6 +366,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 	}
 	return TRUE;
 }
+
 
 void HamCloseActivity()
 {

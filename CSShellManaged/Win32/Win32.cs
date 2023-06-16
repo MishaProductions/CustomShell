@@ -240,7 +240,13 @@ namespace CSShellManaged.Win32
             PeekMessage(out msg, 0, WM_QUIT, WM_QUIT, 0); // fixes a bug
 
             var cache = (IStartMenuItemsCache)new CStartMenuItemsCache();
-            cache.RegisterForNotifications();
+            try
+            {
+                cache.RegisterForNotifications();
+            }
+            catch {
+                Console.WriteLine("incorrect process filename");
+            }
         }
         [DllImport("User32.dll")]
         static extern bool GetMonitorInfoW(nint hMonitor, [In, Out] ref MonitorInfoEx lpmi);

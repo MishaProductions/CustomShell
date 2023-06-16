@@ -266,5 +266,10 @@ namespace CSShellManaged
 
             Marshal.FreeHGlobal(accentPtr);
         }
+
+        private void taskbarSettingsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

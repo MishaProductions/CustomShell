@@ -55,25 +55,25 @@
     <TargetName>$(ProjectName)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>$(ProjectName)</TargetName>
+    <TargetName>explorer</TargetName>
   </PropertyGroup>
   <ItemGroup Condition="'$(Platform)'=='ARM64'">
     <None Include="CSShellHost_A64.exe">
-      <Link>$(ProjectName).exe</Link>
+      <Link>explorer.exe</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>
   <ItemGroup Condition="'$(Platform)'=='x64'">
     <None Include="CSShellHost_x64.exe">
-      <Link>$(ProjectName).exe</Link>
+      <Link>explorer.exe</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>
   <ItemGroup Condition="'$(Platform)'=='Win32'">
     <None Include="CSShellHost_x86.exe">
-      <Link>$(ProjectName).exe</Link>
+      <Link>explorer.exe</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <DeploymentContent>true</DeploymentContent>
     </None>

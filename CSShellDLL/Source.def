@@ -1,1 +1,7 @@
 EXPORTS
+HamCloseActivity
+HamPopulateActivityProperties
+HamCreateActivityForProcess
+HamStartActivityAsync
+HamConnectToServer
+HamDisconnectFromServer

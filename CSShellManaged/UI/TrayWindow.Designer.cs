@@ -32,6 +32,7 @@
             panel1 = new Panel();
             contextMenuStrip1 = new ContextMenuStrip(components);
             openTaskManagerToolStripMenuItem = new ToolStripMenuItem();
+            taskbarSettingsToolStripMenuItem = new ToolStripMenuItem();
             contextMenuStrip1.SuspendLayout();
             SuspendLayout();
             // 
@@ -41,34 +42,44 @@
             panel1.Dock = DockStyle.Left;
             panel1.ForeColor = Color.White;
             panel1.Location = new Point(0, 0);
+            panel1.Margin = new Padding(2);
             panel1.Name = "panel1";
-            panel1.Size = new Size(117, 70);
+            panel1.Size = new Size(68, 35);
             panel1.TabIndex = 0;
             // 
             // contextMenuStrip1
             // 
             contextMenuStrip1.ImageScalingSize = new Size(28, 28);
-            contextMenuStrip1.Items.AddRange(new ToolStripItem[] { openTaskManagerToolStripMenuItem });
+            contextMenuStrip1.Items.AddRange(new ToolStripItem[] { openTaskManagerToolStripMenuItem, taskbarSettingsToolStripMenuItem });
             contextMenuStrip1.Name = "contextMenuStrip1";
-            contextMenuStrip1.Size = new Size(272, 40);
+            contextMenuStrip1.RenderMode = ToolStripRenderMode.Professional;
+            contextMenuStrip1.Size = new Size(181, 70);
             // 
             // openTaskManagerToolStripMenuItem
             // 
             openTaskManagerToolStripMenuItem.Name = "openTaskManagerToolStripMenuItem";
-            openTaskManagerToolStripMenuItem.Size = new Size(271, 36);
+            openTaskManagerToolStripMenuItem.Size = new Size(180, 22);
             openTaskManagerToolStripMenuItem.Text = "Open Task Manager";
             openTaskManagerToolStripMenuItem.Click += openTaskManagerToolStripMenuItem_Click;
             // 
+            // taskbarSettingsToolStripMenuItem
+            // 
+            taskbarSettingsToolStripMenuItem.Name = "taskbarSettingsToolStripMenuItem";
+            taskbarSettingsToolStripMenuItem.Size = new Size(180, 22);
+            taskbarSettingsToolStripMenuItem.Text = "Taskbar Settings";
+            taskbarSettingsToolStripMenuItem.Click += taskbarSettingsToolStripMenuItem_Click;
+            // 
             // Shell_TrayWnd
             // 
-            AutoScaleDimensions = new SizeF(12F, 30F);
+            AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.LawnGreen;
-            ClientSize = new Size(800, 70);
+            ClientSize = new Size(467, 35);
             ContextMenuStrip = contextMenuStrip1;
             ControlBox = false;
             Controls.Add(panel1);
             FormBorderStyle = FormBorderStyle.None;
+            Margin = new Padding(2);
             Name = "Shell_TrayWnd";
             ShowInTaskbar = false;
             Text = "TrayWindow";
@@ -82,5 +93,6 @@
         private Panel panel1;
         private ContextMenuStrip contextMenuStrip1;
         private ToolStripMenuItem openTaskManagerToolStripMenuItem;
+        private ToolStripMenuItem taskbarSettingsToolStripMenuItem;
     }
 }
