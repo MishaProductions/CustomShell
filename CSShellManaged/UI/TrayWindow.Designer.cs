@@ -32,12 +32,12 @@
             panel1 = new Panel();
             contextMenuStrip1 = new ContextMenuStrip(components);
             openTaskManagerToolStripMenuItem = new ToolStripMenuItem();
-            label1 = new Label();
             contextMenuStrip1.SuspendLayout();
             SuspendLayout();
             // 
             // panel1
             // 
+            panel1.BackColor = Color.Red;
             panel1.Dock = DockStyle.Left;
             panel1.ForeColor = Color.White;
             panel1.Location = new Point(0, 0);
@@ -59,25 +59,14 @@
             openTaskManagerToolStripMenuItem.Text = "Open Task Manager";
             openTaskManagerToolStripMenuItem.Click += openTaskManagerToolStripMenuItem_Click;
             // 
-            // label1
-            // 
-            label1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
-            label1.ForeColor = Color.White;
-            label1.Location = new Point(706, 9);
-            label1.Name = "label1";
-            label1.Size = new Size(119, 72);
-            label1.TabIndex = 1;
-            label1.Text = "7:00 AM";
-            // 
             // Shell_TrayWnd
             // 
             AutoScaleDimensions = new SizeF(12F, 30F);
             AutoScaleMode = AutoScaleMode.Font;
-            BackColor = Color.Coral;
+            BackColor = Color.LawnGreen;
             ClientSize = new Size(800, 70);
             ContextMenuStrip = contextMenuStrip1;
             ControlBox = false;
-            Controls.Add(label1);
             Controls.Add(panel1);
             FormBorderStyle = FormBorderStyle.None;
             Name = "Shell_TrayWnd";
@@ -93,6 +82,5 @@
         private Panel panel1;
         private ContextMenuStrip contextMenuStrip1;
         private ToolStripMenuItem openTaskManagerToolStripMenuItem;
-        private Label label1;
     }
 }

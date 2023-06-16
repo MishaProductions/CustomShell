@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CSShellManaged
+namespace CSShellManaged.Win32
 {
     [ComVisible(true)]
     [Guid("546A0315-5645-4810-A39D-8496EA24E1B4")]
@@ -16,7 +16,7 @@ namespace CSShellManaged
         public nint desktop;
         public DeskTrayImpl(nint handle)
         {
-            this.trayHandle = handle;
+            trayHandle = handle;
         }
 
         public uint AppBarGetState()
@@ -32,7 +32,7 @@ namespace CSShellManaged
             Debugger.Break();
             tray = trayHandle;
             Console.WriteLine("GetTrayWindow end");
-          //  return 0;
+            //  return 0;
         }
 
         public int SetDesktopWindow(nint desktop)

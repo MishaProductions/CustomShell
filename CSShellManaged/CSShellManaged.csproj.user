@@ -2,16 +2,16 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup />
   <ItemGroup>
-    <Compile Update="Desktop.cs">
+    <Compile Update="UI\Desktop.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Update="ProgManWindow.cs">
+    <Compile Update="UI\ProgManWindow.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="StartButton.cs">
+    <Compile Update="UI\StartButton.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Update="TrayWindow.cs">
+    <Compile Update="UI\TrayWindow.cs">
       <SubType>Form</SubType>
     </Compile>
   </ItemGroup>

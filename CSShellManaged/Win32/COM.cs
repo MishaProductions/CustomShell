@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace CSShellManaged
+namespace CSShellManaged.Win32
 {
     [ComImport]
     [Guid("914d9b3a-5e53-4e14-bbba-46062acb35a4")]
@@ -11,11 +11,11 @@ namespace CSShellManaged
     {
         int Register(); //TODO args
         int Unregister(uint cookie);
-        int PostShellHookMessage(IntPtr wparam, IntPtr lparam);
-        int SetTargetWindowForSerialization(IntPtr hwnd);
+        int PostShellHookMessage(nint wparam, nint lparam);
+        int SetTargetWindowForSerialization(nint hwnd);
         int PostShellHookMessageWithSerialization();//todo: args
-        int UpdateWindowApplicationId(IntPtr hwnd, string pszAppid);
-        int HandleWindowReplacement(IntPtr hwndOld, IntPtr hwndNew);
+        int UpdateWindowApplicationId(nint hwnd, string pszAppid);
+        int HandleWindowReplacement(nint hwndOld, nint hwndNew);
         bool IsExecutionOnSerializedThread();
     }
     [ComImport]
@@ -40,8 +40,8 @@ namespace CSShellManaged
     public interface IImmersiveShellController
     {
         public int Start();
-        public int Stop(IntPtr arg);
-        public int SetCreationBehavior(IntPtr arg);
+        public int Stop(nint arg);
+        public int SetCreationBehavior(nint arg);
     }
 
     [ComImport]
@@ -70,10 +70,10 @@ namespace CSShellManaged
         public int UnregisterForNotifications();
         public int PauseNotifications();
         public int ResumeNotifications();
-        public int RegisterARNotify(IntPtr str);
+        public int RegisterARNotify(nint str);
         public int RefreshCache(int flags);
         public int ReleaseGlobalCacheObject();
-        public int IsCacheMatchingLanguage(IntPtr ptr);
+        public int IsCacheMatchingLanguage(nint ptr);
     }
 
     [ComImport]
@@ -95,7 +95,7 @@ namespace CSShellManaged
     {
         public int GetIdentity(out uint pIdentity);
         public int Append(object unknown);
-        public int GetHandle(IntPtr phMonitor);
+        public int GetHandle(nint phMonitor);
         public int IsConnected(out bool pfConnected);
         public int IsPrimary(out bool pfPrimary);
         public int GetTrustLevel(out uint level);
@@ -120,13 +120,13 @@ namespace CSShellManaged
         public int GetCount(out uint pcMonitors);
         public int GetConnectedCount(out uint pcMonitors);
         public int GetAt(out uint idxMonitor, out IImmersiveMonitor monitor);
-        public int GetFromHandle(IntPtr monitor, out IImmersiveMonitor monitor2);
+        public int GetFromHandle(nint monitor, out IImmersiveMonitor monitor2);
         public int GetFromIdentity(uint identity, out IImmersiveMonitor monitor);
         public int GetImmersiveProxyMonitor(out IImmersiveMonitor monitor);
-        public int QueryService(IntPtr monit, ref Guid guidService, ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object service);
+        public int QueryService(nint monit, ref Guid guidService, ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object service);
         public int QueryServiceByIdentity(uint monit, ref Guid guidService, ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object service);
-        public int QueryServiceFromWindow(IntPtr hwnd, ref Guid guidService, ref Guid riid,[MarshalAs(UnmanagedType.IUnknown)] out object service);
-        public int QueryServiceFromPoint(IntPtr point, ref Guid guidService, ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object service);
+        public int QueryServiceFromWindow(nint hwnd, ref Guid guidService, ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object service);
+        public int QueryServiceFromPoint(nint point, ref Guid guidService, ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object service);
         public int GetNextImmersiveMonitor(IMMERSIVE_MONITOR_MOVE_DIRECTION direction, IImmersiveMonitor monitor, out IImmersiveMonitor monitorout);
         public int GetMonitorArray(out object array);
         public int SetFilter(object filter);
@@ -183,8 +183,8 @@ namespace CSShellManaged
     {
         //IDeskTray
         public uint AppBarGetState();
-        public void GetTrayWindow(ref IntPtr tray);
-        public int SetDesktopWindow(IntPtr desktop);
+        public void GetTrayWindow(ref nint tray);
+        public int SetDesktopWindow(nint desktop);
         public int SetVar(int a, ulong b);
     }
 

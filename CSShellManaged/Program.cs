@@ -1,7 +1,8 @@
-﻿using PlayHooky;
+﻿using CSShellManaged.Win32;
+using PlayHooky;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using static CSShellManaged.Win32;
+using static CSShellManaged.Win32.Win32Defs;
 
 namespace CSShellManaged
 {
@@ -60,7 +61,7 @@ namespace CSShellManaged
                 if (Progmanhwnd == 0)
                 {
                     throw new Win32Exception();
-                }   
+                }
 
                 //create taskman class (handles taskbar buttons)
                 CreateTaskman();
@@ -72,23 +73,6 @@ namespace CSShellManaged
 
                 PostMessageW(tray.Handle, 1424, 1, 0); //??
 
-                PostMessageW(Program.Progmanhwnd, 1116, 3, 0);
-                PostMessageW(Program.Progmanhwnd, 1116, 2, 0);
-                //SendMessageW(progman, 5, 0, 0);
-                //PostMessageW(progman, 1116, 0, 0); //_StuckTrayChange
-
-                //SendMessageW(progman, 1116, 3, 0);
-
-
-                ////some time later
-                //PostMessageW(progman, 1118, 0, 0x10002); //_StartDesktopApiSurface
-
-                //PostMessageW(progman, 1101, 0, 0);
-                //PostMessageW(progman, 1101, 0, 0);
-
-                //PostMessageW(progman, 1116, 3, 5); //_StartWaitForDesktopVisuals
-
-                //PostMessageW(progman, 1115, 0, 0x10000); //_StartDesktopFinalTasks
                 ShowWindow(Program.Progmanhwnd, ShowWindowCommands.Show);
                 SHDesktopMessageLoop(Progmanhwnd);
                 return 0;

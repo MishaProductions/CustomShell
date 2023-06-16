@@ -10,7 +10,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Interop;
-using static CSShellManaged.Win32;
+using CSShellManaged.Win32;
+using static CSShellManaged.Win32.Win32;
 
 namespace CSShellManaged
 {
@@ -63,7 +64,7 @@ namespace CSShellManaged
         }
         private void ABSetPos()
         {
-            int height = 50;
+            int height = 70;
             APPBARDATA abd = new APPBARDATA();
             abd.cbSize = Marshal.SizeOf(abd);
             abd.hWnd = this.Handle;
@@ -146,16 +147,19 @@ namespace CSShellManaged
             }
             else if (m.Msg == 1369) //Handle boot stuff
             {
+                Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                 PostMessageW(m.HWnd, 1396, 0, 1); //1 is idk
                 var eventt = CreateEvent(0, true, true, "ShellReadyEvent");
                 SetEvent(eventt);
             }
             else if (m.Msg == 1396)
             {
-                //PostMessageW(Program.Progmanhwnd, 1116, 3, 0);
+                Console.WriteLine("?????????????????????");
+                PostMessageW(Program.Progmanhwnd, 1116, 3, 0);
+                PostMessageW(Program.Progmanhwnd, 1116, 2, 0);
 
-            
-                                                                                                              //PostMessageW(Program.Progmanhwnd, 1118, 3, 0);
+
+                //PostMessageW(Program.Progmanhwnd, 1118, 3, 0);
 
 
 
@@ -166,14 +170,18 @@ namespace CSShellManaged
 
 
                 ////some time later
-                //PostMessageW(Program.Progmanhwnd, 1118, 0, 0x10002); //_StartDesktopApiSurface
+                PostMessageW(Program.Progmanhwnd, 1118, 0, 0x10002); //_StartDesktopApiSurface
+
+                PostMessageW(Program.Progmanhwnd, 1116, 3, 5);
+                PostMessageW(Program.Progmanhwnd, 1116, 3, 5);
+                PostMessageW(Program.Progmanhwnd, 1115, 0, 0x10000); //_StartDesktopFinalTasks
 
                 //PostMessageW(Program.Progmanhwnd, 1101, 0, 0);
                 //PostMessageW(Program.Progmanhwnd, 1101, 0, 0);
 
                 //PostMessageW(Program.Progmanhwnd, 1116, 3, 5); //_StartWaitForDesktopVisuals
 
-                //PostMessageW(Program.Progmanhwnd, 1115, 0, 0x10000); //_StartDesktopFinalTasks
+                //
             }
             else if (m.Msg == shellhook)
             {

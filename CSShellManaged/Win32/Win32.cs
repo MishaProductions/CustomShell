@@ -10,9 +10,9 @@ using System.Windows;
 using System.Windows.Interop;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
-namespace CSShellManaged
+namespace CSShellManaged.Win32
 {
-    public static class Win32
+    public static class Win32Defs
     {
         public const int SM_XVIRTUALSCREEN = 76;
         public const int SM_YVIRTUALSCREEN = 77;
@@ -26,7 +26,14 @@ namespace CSShellManaged
         public const int WM_PAINT = 0xF;
         public const int WM_QUIT = 0x0012;
         public const int WM_TIMER = 0x0113;
+
         public const int WM_HOTKEY = 0x0312;
+
+        private const int SPIF_SENDWININICHANGE = 2;
+        private const int SPIF_UPDATEINIFILE = 1;
+        private const int SPIF_change = SPIF_UPDATEINIFILE | SPIF_SENDWININICHANGE;
+        private const int SPI_SETWORKAREA = 47;
+
         public const int
    IDC_ARROW = 32512,
    IDC_IBEAM = 32513,
@@ -45,101 +52,101 @@ namespace CSShellManaged
    IDC_APPSTARTING = 32650,
    IDC_HELP = 32651;
         [DllImport("user32.dll", SetLastError = true)]
-        public static extern bool SetPropW(IntPtr hWnd, string lpString, IntPtr hData);
+        public static extern bool SetPropW(nint hWnd, string lpString, nint hData);
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.U2)]
         public static extern short RegisterClassExW([In] ref WNDCLASSEX lpwcx);
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern IntPtr GetModuleHandle([MarshalAs(UnmanagedType.LPWStr)] string? lpModuleName);
-        public delegate IntPtr Wndproc(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
+        public static extern nint GetModuleHandle([MarshalAs(UnmanagedType.LPWStr)] string? lpModuleName);
+        public delegate nint Wndproc(nint hwnd, uint msg, nint wParam, nint lParam);
         [DllImport("user32.dll", SetLastError = true)]
-        public static extern IntPtr CreateWindowEx(uint dwExStyle, string lpClassName,
+        public static extern nint CreateWindowEx(uint dwExStyle, string lpClassName,
    string? lpWindowName, uint dwStyle, int x, int y, int nWidth, int nHeight,
-   IntPtr hWndParent, IntPtr hMenu, IntPtr hInstance, IntPtr lpParam);
+   nint hWndParent, nint hMenu, nint hInstance, nint lpParam);
         [DllImport("user32.dll", SetLastError = true)]
         public static extern int GetSystemMetrics(int index);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool ShowWindow(IntPtr hWnd, ShowWindowCommands nCmdShow);
+        public static extern bool ShowWindow(nint hWnd, ShowWindowCommands nCmdShow);
 
         [DllImport("user32.dll")]
-        public static extern IntPtr BeginPaint(IntPtr hwnd, out PAINTSTRUCT lpPaint);
+        public static extern nint BeginPaint(nint hwnd, out PAINTSTRUCT lpPaint);
 
         [DllImport("user32.dll")]
-        public static extern IntPtr DefWindowProc(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam);
+        public static extern nint DefWindowProc(nint hWnd, uint uMsg, nint wParam, nint lParam);
 
         [DllImport("user32.dll")]
-        public static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+        public static extern bool GetClientRect(nint hWnd, out RECT lpRect);
 
         [DllImport("user32.dll")]
-        public static extern int DrawText(IntPtr hDC, string lpString, int nCount, ref RECT lpRect, uint uFormat);
+        public static extern int DrawText(nint hDC, string lpString, int nCount, ref RECT lpRect, uint uFormat);
 
         [DllImport("user32.dll")]
-        public static extern bool EndPaint(IntPtr hWnd, [In] ref PAINTSTRUCT lpPaint);
+        public static extern bool EndPaint(nint hWnd, [In] ref PAINTSTRUCT lpPaint);
 
         [DllImport("user32.dll")]
         public static extern void PostQuitMessage(int nExitCode);
 
         [DllImport("user32.dll")]
-        public static extern IntPtr LoadIcon(IntPtr hInstance, string lpIconName);
+        public static extern nint LoadIcon(nint hInstance, string lpIconName);
 
         [DllImport("user32.dll")]
-        public static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIConName);
+        public static extern nint LoadIcon(nint hInstance, nint lpIConName);
 
 
 
         [DllImport("user32.dll")]
-        public static extern MessageBoxResult MessageBox(IntPtr hWnd, string text, string caption, int options);
+        public static extern MessageBoxResult MessageBox(nint hWnd, string text, string caption, int options);
 
         [DllImport("user32.dll")]
-        public static extern bool UpdateWindow(IntPtr hWnd);
+        public static extern bool UpdateWindow(nint hWnd);
 
         [DllImport("user32.dll")]
-        public static extern IntPtr LoadCursor(IntPtr hInstance, int lpCursorName);
+        public static extern nint LoadCursor(nint hInstance, int lpCursorName);
 
         [DllImport("user32.dll")]
-        public static extern int SetShellWindow(IntPtr handle);
+        public static extern int SetShellWindow(nint handle);
         [DllImport("user32.dll")]
-        public static extern IntPtr GetShellWindow();
+        public static extern nint GetShellWindow();
         [DllImport("user32.dll")]
-        public static extern int SetTaskmanWindow(IntPtr handle);
+        public static extern int SetTaskmanWindow(nint handle);
         [DllImport("user32.dll")]
-        public static extern IntPtr GetTaskmanWindow();
+        public static extern nint GetTaskmanWindow();
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern IntPtr RemovePropW(IntPtr hWnd, string lpString);
+        public static extern nint RemovePropW(nint hWnd, string lpString);
 
         [DllImport("Shlwapi.dll")]
-        public static extern int SHCreateThreadRef(ref long pcRef, out IntPtr iUnknown);
+        public static extern int SHCreateThreadRef(ref long pcRef, out nint iUnknown);
         [DllImport("Shlwapi.dll")]
-        public static extern int SHSetThreadRef(IntPtr iUnknown);
+        public static extern int SHSetThreadRef(nint iUnknown);
         [DllImport("Api-ms-win-shcore-thread-L1-1-0.dll")]
-        public static extern int SetProcessReference(IntPtr iUnknown);
+        public static extern int SetProcessReference(nint iUnknown);
         [DllImport("user32.dll")]
-        public static extern int FillRect(IntPtr hDC, [In] ref RECT lprc, IntPtr hbr);
+        public static extern int FillRect(nint hDC, [In] ref RECT lprc, nint hbr);
         [DllImport("gdi32.dll")]
-        public static extern IntPtr CreateSolidBrush(uint crColor);
+        public static extern nint CreateSolidBrush(uint crColor);
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern uint RegisterWindowMessage(string lpString);
         [DllImport("user32.dll", SetLastError = true)]
-        public static extern bool RegisterShellHookWindow(IntPtr hWnd);
+        public static extern bool RegisterShellHookWindow(nint hWnd);
         [DllImport("user32.dll", SetLastError = true)]
-        public static extern bool DeregisterShellHookWindow(IntPtr hWnd);
+        public static extern bool DeregisterShellHookWindow(nint hWnd);
         [DllImport("shell32.dll", SetLastError = true)]
         public static extern void SetCurrentProcessExplicitAppUserModelID([MarshalAs(UnmanagedType.LPWStr)] string AppID);
         [DllImport("kernel32.dll")]
         public static extern ErrorModes SetErrorMode(ErrorModes uMode);
         [DllImport("shell32.dll", SetLastError = true, EntryPoint = "#200")]
-        public static extern IntPtr ShCreateDesktop(IntPtr impl);
+        public static extern nint ShCreateDesktop(nint impl);
         [DllImport("shell32.dll", SetLastError = true, EntryPoint = "#201")]
-        public static extern IntPtr SHDesktopMessageLoop(IntPtr impl);
+        public static extern nint SHDesktopMessageLoop(nint impl);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        public static extern IntPtr SendMessageW(IntPtr hWnd, uint Msg, nuint wParam, nint lParam);
+        public static extern nint SendMessageW(nint hWnd, uint Msg, nuint wParam, nint lParam);
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        public static extern IntPtr PostMessageW(IntPtr hWnd, uint Msg, nuint wParam, nint lParam);
+        public static extern nint PostMessageW(nint hWnd, uint Msg, nuint wParam, nint lParam);
         [DllImport("user32.dll", SetLastError = true)]
-        public static extern IntPtr FindWindowW(string lpClassName, string lpWindowName);
+        public static extern nint FindWindowW(string lpClassName, string lpWindowName);
 
         [Flags]
         public enum ErrorModes : uint
@@ -151,9 +158,9 @@ namespace CSShellManaged
             SEM_NOOPENFILEERRORBOX = 0x8000
         }
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern bool SetPriorityClass(IntPtr handle, PriorityClass priorityClass);
+        public static extern bool SetPriorityClass(nint handle, PriorityClass priorityClass);
         [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr GetCurrentProcess();
+        public static extern nint GetCurrentProcess();
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool EnableMouseInPointer([MarshalAs(UnmanagedType.Bool)] bool fEnable);
         public enum PriorityClass : uint
@@ -175,41 +182,48 @@ namespace CSShellManaged
         public static extern bool SetProcessShutdownParameters(uint level, uint flags);
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool PeekMessage(out NativeMessage lpMsg, IntPtr hWnd, uint wMsgFilterMin,
+        static extern bool PeekMessage(out NativeMessage lpMsg, nint hWnd, uint wMsgFilterMin,
    uint wMsgFilterMax, uint wRemoveMsg);
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+        public static extern bool UnregisterHotKey(nint hWnd, int id);
         [DllImport("SHELL32", CallingConvention = CallingConvention.StdCall)]
         public static extern uint SHAppBarMessage(int dwMessage, ref APPBARDATA pData);
         [DllImport("User32.dll", ExactSpelling = true,
-            CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+            CharSet = CharSet.Auto)]
         public static extern bool MoveWindow
-            (IntPtr hWnd, int x, int y, int cx, int cy, bool repaint);
+            (nint hWnd, int x, int y, int cx, int cy, bool repaint);
 
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool SystemParametersInfo(SPI uiAction, uint uiParam, ref MINIMIZEDMETRICS pvParam, SPIF fWinIni);
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SystemParametersInfo(SPI uiAction, uint uiParam, ref RECT pvParam, SPIF fWinIni);
 
         [DllImport("sndvolsso.dll", SetLastError = true, EntryPoint = "#1")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool AudioHIDInitialize(IntPtr handle);
+        public static extern bool AudioHIDInitialize(nint handle);
         [DllImport("sndvolsso.dll", SetLastError = true, EntryPoint = "#2")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool AudioHIDShutdown();
         [DllImport("sndvolsso.dll", SetLastError = true, EntryPoint = "#3")]
-        public static extern void AudioHidProcessMessage(int msg, IntPtr wParam, IntPtr lParam);
+        public static extern void AudioHidProcessMessage(int msg, nint wParam, nint lParam);
         [DllImport("sndvolsso.dll", SetLastError = true, EntryPoint = "#4")]
         public static extern bool AudioHIDProcessAppCommand(uint msg);
         [DllImport("kernel32.dll")]
-        public static extern IntPtr CreateEvent(IntPtr lpEventAttributes, bool bManualReset, bool bInitialState, string lpName);
-        
+        public static extern nint CreateEvent(nint lpEventAttributes, bool bManualReset, bool bInitialState, string lpName);
+
         [DllImport("kernel32.dll")]
-        public static extern bool SetEvent(IntPtr hEvent);
+        public static extern bool SetEvent(nint hEvent);
         [DllImport("user32.dll", SetLastError = true)]
-        public static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
+        public static extern nint SetParent(nint hWndChild, nint hWndNewParent);
         [DllImport("user32.dll")]
-        internal static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
+        internal static extern int SetWindowCompositionAttribute(nint hwnd, ref WindowCompositionAttributeData data);
+        [DllImport("user32.dll")]
+        static extern bool EnumDisplayMonitors(nint hdc, nint lprcClip, EnumMonitorsDelegate lpfnEnum, nint dwData);
+
+        delegate bool EnumMonitorsDelegate(nint hMonitor, nint hdcMonitor, ref Rect lprcMonitor, nint dwData);
         internal static void DoExplorerInit()
         {
             SetCurrentProcessExplicitAppUserModelID("Microsoft.Windows.Explorer");
@@ -228,25 +242,64 @@ namespace CSShellManaged
             var cache = (IStartMenuItemsCache)new CStartMenuItemsCache();
             cache.RegisterForNotifications();
         }
+        [DllImport("User32.dll")]
+        static extern bool GetMonitorInfoW(nint hMonitor, [In, Out] ref MonitorInfoEx lpmi);
+        public static void UpdateWorkspace()
+        {
+            EnumDisplayMonitors(0, 0, delegate (nint hMonitor, nint hdcMonitor, ref Rect lprcMonitor, nint dwData)
+            {
+                var x = new MonitorInfoEx();
+                x.Init();
+
+                if (!GetMonitorInfoW(hMonitor, ref x))
+                {
+                    Console.WriteLine("failed to get monitor informations");
+                }
+                else
+                {
+                    Console.WriteLine(x.Monitor.ToString());
+                    Console.WriteLine("workarea:" + x.WorkArea.ToString());
+                    x.Monitor.bottom += 70;
+                    SetWorkspace(x.Monitor);
+                }
+                return true;
+            }, 0);
+        }
+        private static bool SetWorkspace(RECT rect)
+        {
+            // Since you've declared the P/Invoke function correctly, you don't need to
+            // do the marshaling yourself manually. The .NET FW will take care of it.
+
+            bool result = SystemParametersInfo(SPI.SPI_SETWORKAREA,
+                                               1,
+                                               ref rect,
+                                               SPIF.SPIF_UPDATEINIFILE | SPIF.SPIF_SENDWININICHANGE);
+            if (!result)
+            {
+                Console.WriteLine("Failed to set " + new Win32Exception().Message);
+            }
+
+            return result;
+        }
     }
-    [StructLayoutAttribute(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct SECURITY_DESCRIPTOR
     {
         public byte revision;
         public byte size;
         public short control;
-        public IntPtr owner;
-        public IntPtr group;
-        public IntPtr sacl;
-        public IntPtr dacl;
+        public nint owner;
+        public nint group;
+        public nint sacl;
+        public nint dacl;
     }
     [StructLayout(LayoutKind.Sequential)]
     public struct NativeMessage
     {
-        public IntPtr handle;
+        public nint handle;
         public uint msg;
-        public IntPtr wParam;
-        public IntPtr lParam;
+        public nint wParam;
+        public nint lParam;
         public uint time;
         public System.Drawing.Point p;
     }
@@ -258,16 +311,16 @@ namespace CSShellManaged
         public int cbSize;
         [MarshalAs(UnmanagedType.U4)]
         public int style;
-        public IntPtr lpfnWndProc; // not WndProc
+        public nint lpfnWndProc; // not WndProc
         public int cbClsExtra;
         public int cbWndExtra;
-        public IntPtr hInstance;
-        public IntPtr hIcon;
-        public IntPtr hCursor;
-        public IntPtr hbrBackground;
+        public nint hInstance;
+        public nint hIcon;
+        public nint hCursor;
+        public nint hbrBackground;
         public string lpszMenuName;
         public string lpszClassName;
-        public IntPtr hIconSm;
+        public nint hIconSm;
 
 
         public static WNDCLASSEX Build()
@@ -284,6 +337,14 @@ namespace CSShellManaged
         public int top;
         public int right;
         public int bottom;
+
+
+        public override string ToString()
+        {
+            int width = right - left;
+            int height = bottom - top;
+            return $"{width}x{height}";
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -299,7 +360,7 @@ namespace CSShellManaged
     [StructLayout(LayoutKind.Sequential)]
     public struct PAINTSTRUCT
     {
-        public IntPtr hdc;
+        public nint hdc;
         public bool fErase;
         public RECT rcPaint;
         public bool fRestore;
@@ -395,11 +456,11 @@ namespace CSShellManaged
     public struct APPBARDATA
     {
         public int cbSize;
-        public IntPtr hWnd;
+        public nint hWnd;
         public int uCallbackMessage;
         public int uEdge;
         public RECT rc;
-        public IntPtr lParam;
+        public nint lParam;
     }
     public enum ABMsg : int
     {
@@ -1656,7 +1717,7 @@ namespace CSShellManaged
     internal struct WindowCompositionAttributeData
     {
         public WindowCompositionAttribute Attribute;
-        public IntPtr Data;
+        public nint Data;
         public int SizeOfData;
     }
 
@@ -1665,6 +1726,57 @@ namespace CSShellManaged
         // ...
         WCA_ACCENT_POLICY = 19
         // ...
+    }
+    /// <summary>
+    /// The MONITORINFOEX structure contains information about a display monitor.
+    /// The GetMonitorInfo function stores information into a MONITORINFOEX structure or a MONITORINFO structure.
+    /// The MONITORINFOEX structure is a superset of the MONITORINFO structure. The MONITORINFOEX structure adds a string member to contain a name
+    /// for the display monitor.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    internal struct MonitorInfoEx
+    {
+
+        /// <summary>
+        /// The size, in bytes, of the structure. Set this member to sizeof(MONITORINFOEX) (72) before calling the GetMonitorInfo function.
+        /// Doing so lets the function determine the type of structure you are passing to it.
+        /// </summary>
+        public int Size;
+
+        /// <summary>
+        /// A RECT structure that specifies the display monitor rectangle, expressed in virtual-screen coordinates.
+        /// Note that if the monitor is not the primary display monitor, some of the rectangle's coordinates may be negative values.
+        /// </summary>
+        public RECT Monitor;
+
+        /// <summary>
+        /// A RECT structure that specifies the work area rectangle of the display monitor that can be used by applications,
+        /// expressed in virtual-screen coordinates. Windows uses this rectangle to maximize an application on the monitor.
+        /// The rest of the area in rcMonitor contains system windows such as the task bar and side bars.
+        /// Note that if the monitor is not the primary display monitor, some of the rectangle's coordinates may be negative values.
+        /// </summary>
+        public RECT WorkArea;
+
+        /// <summary>
+        /// The attributes of the display monitor.
+        ///
+        /// This member can be the following value:
+        ///   1 : MONITORINFOF_PRIMARY
+        /// </summary>
+        public uint Flags;
+
+        /// <summary>
+        /// A string that specifies the device name of the monitor being used. Most applications have no use for a display monitor name,
+        /// and so can save some bytes by using a MONITORINFO structure.
+        /// </summary>
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string DeviceName;
+
+        public void Init()
+        {
+            Size = 40 + 2 * 32;
+            DeviceName = string.Empty;
+        }
     }
     #endregion // SPI
 }
