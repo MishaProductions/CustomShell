@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <iostream>
 #include <sddl.h>
+#include "dxgi_imp.h"
 
 #pragma comment(lib, "shlwapi.lib")
 #define IS_FLAG_SET(dw,fl)  (((dw) & (fl)) == fl)
@@ -225,6 +226,11 @@ int MainHook(
 )
 {
 	printf("Winmain hooked\n");
+
+	TCHAR wszRealDXGIPath[MAX_PATH];
+	GetSystemDirectoryW(wszRealDXGIPath, MAX_PATH);
+	wcscat_s(wszRealDXGIPath, MAX_PATH, L"\\dxgi.dll");
+	SetupDXGIImportFunctions(LoadLibraryW(wszRealDXGIPath));
 
 	if (FAILED(CoInitializeEx(NULL, 2)))
 	{

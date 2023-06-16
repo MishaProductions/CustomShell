@@ -34,13 +34,14 @@
             // 
             AutoScaleDimensions = new SizeF(12F, 30F);
             AutoScaleMode = AutoScaleMode.Font;
-            BackgroundImage = Properties.Resources.kot;
+            BackColor = Color.RosyBrown;
             BackgroundImageLayout = ImageLayout.Stretch;
             ClientSize = new Size(1244, 450);
             FormBorderStyle = FormBorderStyle.None;
             Name = "ProgManWindow";
-            Text = "ProgManWindow";
-            WindowState = FormWindowState.Maximized;
+            StartPosition = FormStartPosition.Manual;
+            Text = "Program Manager";
+            Load += ProgManWindow_Load;
             ResumeLayout(false);
         }
 

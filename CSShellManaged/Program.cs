@@ -14,7 +14,6 @@ namespace CSShellManaged
         static Guid SID_ImmersiveShellHookService = new Guid("4624bd39-5fc3-44a8-a809-163a836e9031");
         static Guid ImmersiveShellHookServiceInterface = new Guid("914d9b3a-5e53-4e14-bbba-46062acb35a4");
         static IImmersiveShellHookService? HookService;
-        public static DeskTrayImpl desktop;
         public static IntPtr Progmanhwnd;
         public static int Main(IntPtr args, int sizeBytes)
         {
@@ -54,27 +53,23 @@ namespace CSShellManaged
                 WindowClassHook.ClassName = "unknown";
 
                 //Create the desktop
-                desktop = new DeskTrayImpl(tray.Handle);
-                var ptr = Marshal.GetComInterfaceForObject(desktop, typeof(IDeskTray));
-                Progmanhwnd = ShCreateDesktop(ptr);
-                System.Windows.Forms.MessageBox.Show("Attach a debugger NOW");
-                if (Progmanhwnd == 0)
-                {
-                    throw new Win32Exception();
-                }
+                WindowClassHook.ClassName = "Progman";
+                var desktop = new ProgManWindow();
+                desktop.CreateControl();
+               
+                WindowClassHook.ClassName = "unknown23";
 
                 //create taskman class (handles taskbar buttons)
                 CreateTaskman();
 
-                StartImmersiveShell();
+                Application.DoEvents();
+               
 
                 StartExplorerHost();
 
+                PostMessageW(tray.Handle, 1424, 1, 0); //?
 
-                PostMessageW(tray.Handle, 1424, 1, 0); //??
-
-                ShowWindow(Program.Progmanhwnd, ShowWindowCommands.Show);
-                SHDesktopMessageLoop(Progmanhwnd);
+                Application.Run(desktop);
                 return 0;
             }
             catch (Exception ex)
@@ -94,7 +89,7 @@ namespace CSShellManaged
             }
             //host.RunHost(); (doesn't seem to be called in explorer)
         }
-        private static void StartImmersiveShell()
+        public static void StartImmersiveShell()
         {
             try
             {
@@ -259,7 +254,7 @@ namespace CSShellManaged
                 {
                     try
                     {
-                        var x = (IServiceProvider)new CImmersiveShell();
+                        var x = (CSShellManaged.Win32.IServiceProvider)new CImmersiveShell();
                         if (x.QueryService(ref SID_ImmersiveShellHookService, ref ImmersiveShellHookServiceInterface, out object shellhooksrv) < 0)
                         {
                             Console.WriteLine("failed to get the immersive shell hook service");

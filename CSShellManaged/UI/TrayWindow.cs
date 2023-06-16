@@ -9,9 +9,11 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Forms.Integration;
 using System.Windows.Interop;
+using CSShellManaged.UI.XAML;
 using CSShellManaged.Win32;
-using static CSShellManaged.Win32.Win32;
+using static CSShellManaged.Win32.Win32Defs;
 
 namespace CSShellManaged
 {
@@ -19,18 +21,18 @@ namespace CSShellManaged
     {
         private bool fBarRegistered = false;
         private int uCallBack;
-
+        private TaskbarUi taskbarUi = new TaskbarUi();
         protected override CreateParams CreateParams
         {
             get
             {
                 var cp = base.CreateParams;
-                //cp.ExStyle = 384;
+                cp.ExStyle = 384;
                 //cp.X = 0;
                 //cp.Y = 0;
                 //cp.Width = 0;
                 //cp.Height = 0;
-                //  cp.Style = unchecked((int)0x82000000);
+                cp.Style = unchecked((int)0x82000000);
                 ///cp.Height = 48;
                 return cp;
             }
@@ -228,7 +230,12 @@ namespace CSShellManaged
 
             WindowClassHook.ClassName = "Start";
             panel1.Controls.Add(new StartButton() { Dock = DockStyle.Fill });
-            WindowClassHook.ClassName = "unknown2";
+            WindowClassHook.ClassName = "unknown223423543253214534";
+
+            var taskbarHost = new ElementHost();
+            taskbarHost.Child = taskbarUi;
+            taskbarHost.Dock = DockStyle.Fill;
+            Controls.Add(taskbarHost);
         }
 
         private void openTaskManagerToolStripMenuItem_Click(object sender, EventArgs e)

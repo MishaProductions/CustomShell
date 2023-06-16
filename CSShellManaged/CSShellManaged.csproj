@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
 		<TargetFramework>net7.0-windows</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -11,33 +10,5 @@
 		<UseWPF>True</UseWPF>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<Platforms>AnyCPU;x64</Platforms>
-		<EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
 	</PropertyGroup>
-
-	<ItemGroup>
-	  <Compile Include="UI\Desktop.cs" />
-	  <Compile Include="UI\Desktop.Designer.cs" />
-	  <Compile Include="UI\ProgManWindow.cs" />
-	  <Compile Include="UI\ProgManWindow.Designer.cs" />
-	  <Compile Include="UI\StartButton.cs" />
-	  <Compile Include="UI\StartButton.Designer.cs" />
-	  <Compile Include="UI\TrayWindow.cs" />
-	  <Compile Include="UI\TrayWindow.Designer.cs" />
-	  <Compile Include="Win32\COM.cs" />
-	  <Compile Include="Win32\DeskTrayImpl.cs" />
-	  <Compile Include="Win32\Win32.cs" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<EmbeddedResource Include="UI\Desktop.resx" />
-		<EmbeddedResource Include="Properties\Resources.resx">
-			<Generator>ResXFileCodeGenerator</Generator>
-			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
-		</EmbeddedResource>
-		<EmbeddedResource Include="UI\TrayWindow.resx" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="UI\XAML\" />
-	</ItemGroup>
 </Project>
