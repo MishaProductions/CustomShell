@@ -75,15 +75,22 @@ namespace CSShellManaged
 
 
             Program.StartImmersiveShell();
-            //load wallpaper
-            var desktop = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop");
-            if (desktop != null)
+            try
             {
-                var key = (string)desktop.GetValue("Wallpaper");
-                if (key != null)
+                //load wallpaper
+                var desktop = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop");
+                if (desktop != null)
                 {
-                    BackgroundImage = Image.FromFile(key);
+                    var key = (string)desktop.GetValue("Wallpaper");
+                    if (key != null)
+                    {
+                        BackgroundImage = Image.FromFile(key);
+                    }
                 }
+            }
+            catch
+            {
+
             }
         }
     }

@@ -19,7 +19,6 @@ namespace CSShellManaged
         {
             try
             {
-              
                 Console.WriteLine("Hello from .NET");
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.EnableVisualStyles();
@@ -31,7 +30,6 @@ namespace CSShellManaged
                     if (SHSetThreadRef(ProgManThreadRef) < 0)
                     {
                         Console.WriteLine("SHSetThreadRef failed");
-
                     }
                     else
                     {

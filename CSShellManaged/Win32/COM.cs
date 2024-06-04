@@ -39,6 +39,10 @@ namespace CSShellManaged.Win32
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     public interface IImmersiveShellController
     {
+        /// <summary>
+        /// start immersive shell controller
+        /// </summary>
+        /// <returns></returns>
         public int Start();
         public int Stop(nint arg);
         public int SetCreationBehavior(nint arg);
